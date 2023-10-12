@@ -1,9 +1,9 @@
-import { number, z } from "zod"
-import "dotenv/config"
+import { number, z } from 'zod'
+import 'dotenv/config'
 
 const processEnvSchema = z.object({
   BOT_TOKEN: z.string(),
-  CHAT_ID: z.string().transform(val => Number(val))
+  CHAT_ID: z.string().transform((val) => Number(val)),
 })
 const typedProcessEnv = processEnvSchema.parse(process.env)
 export const config = {
