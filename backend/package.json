@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "dotenv": "^16.3.1",
-    "telegraf": "^4.14.0"
+    "telegraf": "^4.14.0",
+    "zod": "^3.22.4"
   }
 }
