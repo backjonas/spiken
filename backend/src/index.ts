@@ -7,10 +7,11 @@ bot.command('patron', async (ctx) => {
   if (!(await isChatMember(ctx.from.id))) {
     return ctx.reply('sii dej i reven!')
   }
+
   try {
     await purchaseItemForMember({
       userId: ctx.from.id,
-      userName: ':D',
+      userName: formatName({ ...ctx.from }),
       description: 'Patron',
       amountCents: '-1200',
     })
@@ -38,4 +39,18 @@ const isChatMember = async (userId: number) => {
   const acceptedStatuses = ['creator', 'administrator', 'member', 'owner']
   const member = await bot.telegram.getChatMember(config.chatId, userId)
   return acceptedStatuses.includes(member.status)
+}
+
+const formatName = ({
+  first_name,
+  last_name,
+  username,
+}: {
+  first_name: string
+  last_name?: string
+  username?: string
+}) => {
+  const formattedLastName = last_name ? ` ${last_name}` : ``
+  const formattedUserName = username ? ` (${username})` : ``
+  return `${first_name}${formattedLastName}${formattedUserName}`
 }
