@@ -50,7 +50,10 @@ bot.command('kalja', addPurchaseOption('Öl', '-150'))
 bot.command('cigarr', addPurchaseOption('Cigarr', '-1000'))
 bot.command('cognac', addPurchaseOption('Cognac', '-200'))
 
-bot.command('saldo', async (ctx) => {})
+bot.command('saldo', async (ctx) => {
+  const balance = await getBalanceForMember(ctx.from.id)
+  return ctx.reply(`Ditt saldo är ${balance}€`)
+})
 
 bot.launch()
 
