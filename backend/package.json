@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc-watch --onSuccess \"node build/index.js\""
+    "start": "tsc-watch --onSuccess \"node build/index.js\"",
+    "build": "tsc --build"
   },
   "author": "",
   "license": "ISC",
