@@ -15,6 +15,13 @@ bot.use(async (ctx, next) => {
   await next()
 })
 
+bot.use(async (ctx, next) => {
+  if (ctx.chat?.type !== 'private') {
+    return
+  }
+  await next()
+})
+
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
     ctx: Context<{
