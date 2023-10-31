@@ -5,6 +5,16 @@ import { Message, Update } from '@telegraf/types'
 
 const bot = new Telegraf(config.botToken)
 
+bot.use(async (ctx, next) => {
+  if (!ctx.from) {
+    return
+  }
+  if (!(await isChatMember(ctx.from.id))) {
+    return ctx.reply('sii dej i reven!')
+  }
+  await next()
+})
+
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
     ctx: Context<{
@@ -12,10 +22,6 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
       update_id: number
     }>
   ) => {
-    if (!(await isChatMember(ctx.from.id))) {
-      return ctx.reply('sii dej i reven!')
-    }
-
     try {
       await purchaseItemForMember({
         userId: ctx.from.id,
@@ -43,6 +49,9 @@ bot.command('patron', addPurchaseOption('Patron', '-1200'))
 bot.command('kalja', addPurchaseOption('Öl', '-150'))
 bot.command('cigarr', addPurchaseOption('Cigarr', '-1000'))
 bot.command('cognac', addPurchaseOption('Cognac', '-200'))
+
+bot.command('saldo', async (ctx) => {})
+
 bot.launch()
 
 // Enable graceful stop
