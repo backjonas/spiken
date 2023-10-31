@@ -51,16 +51,46 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
     }
   }
 }
-
-bot.command('patron', addPurchaseOption('Patron', '-1200'))
-bot.command('kalja', addPurchaseOption('Öl', '-150'))
-bot.command('cigarr', addPurchaseOption('Cigarr', '-1000'))
-bot.command('cognac', addPurchaseOption('Cognac', '-200'))
+const commands = [
+  {
+    command: 'patron',
+    description: 'Patron',
+    priceCents: '-1200',
+  },
+  {
+    command: 'kalja',
+    description: 'Öl',
+    priceCents: '-150',
+  },
+  {
+    command: 'cigarr',
+    description: 'Cigarr',
+    priceCents: '-1000',
+  },
+  {
+    command: 'cognac',
+    description: 'Cognac',
+    priceCents: '-200',
+  },
+]
+commands.forEach(({ command, description, priceCents }) => {
+  bot.command(command, addPurchaseOption(description, priceCents))
+})
 
 bot.command('saldo', async (ctx) => {
   const balance = await getBalanceForMember(ctx.from.id)
   return ctx.reply(`Ditt saldo är ${balance}€`)
 })
+
+bot.telegram.setMyCommands([
+  ...commands.map(({ command, description, priceCents }) => ({
+    command,
+    description: `Köp 1 st ${description} för ${(
+      Number(priceCents) / -100
+    ).toFixed(2)}€`,
+  })),
+  { command: 'saldo', description: 'Kontrollera saldo' },
+])
 
 bot.launch()
 
