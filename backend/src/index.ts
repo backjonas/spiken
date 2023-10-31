@@ -3,6 +3,13 @@ import { config } from './config.js'
 import { getBalanceForMember, purchaseItemForMember } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 
+/*
+Toiveiden tynnyri:
+- Admin interface, lägg till/ta bort produkter, csv transaction dump, lägg till/ta bort saldo
+- Skamlistan, posta alla med negativt i chatten med en @
+- En 'vapaa myynti' command med description och summa
+*/
+
 const bot = new Telegraf(config.botToken)
 
 bot.use(async (ctx, next) => {
@@ -70,6 +77,11 @@ const commands = [
   {
     command: 'cognac',
     description: 'Cognac',
+    priceCents: '-200',
+  },
+  {
+    command: 'snaps',
+    description: 'Snaps',
     priceCents: '-200',
   },
 ]
