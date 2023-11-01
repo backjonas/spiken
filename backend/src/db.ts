@@ -1,6 +1,11 @@
 import pg from 'pg'
 
-export const pool = new pg.Pool()
+export const pool = new pg.Pool({
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
+})
 
 await pool.query(
   `CREATE TABLE IF NOT EXISTS transactions(
