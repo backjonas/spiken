@@ -113,8 +113,13 @@ process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
 const isChatMember = async (userId: number) => {
   const acceptedStatuses = ['creator', 'administrator', 'member', 'owner']
-  const member = await bot.telegram.getChatMember(config.chatId, userId)
-  return acceptedStatuses.includes(member.status)
+  try {
+    const member = await bot.telegram.getChatMember(config.chatId, userId)
+    return acceptedStatuses.includes(member.status)
+  } catch (e) {
+    console.log('Error checking group membership:', e)
+    return false
+  }
 }
 
 const formatName = ({
