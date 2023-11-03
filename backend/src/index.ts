@@ -13,6 +13,13 @@ Toiveiden tynnyri:
 
 const bot = new Telegraf(config.botToken)
 
+const info_message = `Hej, välkommen till STF spik bot!
+  Här kan du köra köp och kolla ditt saldo.
+  Du hittar alla commandon under "Menu" med beskrivning.
+  Märk att du inte kan ångra ett köp, så var aktsam!
+  Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
+  Oss väl och ingen illa!`
+
 bot.use(async (ctx, next) => {
   if (!ctx.from) {
     return
@@ -95,6 +102,14 @@ bot.command('saldo', async (ctx) => {
   return ctx.reply(`Ditt saldo är ${balance}€`)
 })
 
+bot.command('info', async (ctx) => {
+  return ctx.reply(info_message)
+})
+
+bot.command('start', async (ctx) => {
+  return ctx.reply(info_message)
+})
+
 bot.telegram.setMyCommands([
   ...commands.map(({ command, description, priceCents }) => ({
     command,
@@ -103,6 +118,7 @@ bot.telegram.setMyCommands([
     ).toFixed(2)}€`,
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
+  { command: 'info', description: 'Visar information om bottens användning'}
 ])
 
 bot.launch()
