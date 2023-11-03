@@ -104,7 +104,7 @@ export const createECS = ({
       credentials: ghcrSecret,
     }),
     environment: {
-      PGDATABASE: 'spiken',
+      PGDATABASE: 'postgres',
       BOT_TOKEN: process.env.BOT_TOKEN!,
       CHAT_ID: process.env.CHAT_ID!,
       NODE_ENV: 'production',
