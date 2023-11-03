@@ -32,9 +32,16 @@ export const getBalanceForMember = async (userId: number) => {
     `SELECT SUM (amount_cents) AS balance FROM transactions WHERE user_id = $1`,
     [userId]
   )
-  const balanceResponse = BalanceResponseSchema.parse(res.rows)
-  return (Number(balanceResponse[0].balance) / 100).toFixed(2)
+  try {
+    const balanceResponse = BalanceResponseSchema.parse(res.rows)
+    return (Number(balanceResponse[0].balance) / 100).toFixed(2)
+  } catch (e) {
+    // The balance conversion fails if no transactions exist.
+    // Fail silently and return 0, as this is intended functionality
+    return (0).toFixed(2)
+  }
 }
+
 const BalanceResponseSchema = z
   .array(
     z.object({
