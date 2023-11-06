@@ -1,4 +1,4 @@
-import { Context, Telegraf } from 'telegraf'
+import { Context, Markup, Telegraf } from 'telegraf'
 import { config } from './config.js'
 import {
   exportTransactions,
@@ -21,11 +21,11 @@ Toiveiden tynnyri:
 const bot = new Telegraf(config.botToken)
 
 const info_message = `Hej, välkommen till STF spik bot!
-  Här kan du köra köp och kolla ditt saldo.
-  Du hittar alla commandon under "Menu" med beskrivning.
-  Märk att du inte kan ångra ett köp, så var aktsam!
-  Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
-  Oss väl och ingen illa!`
+Här kan du köra köp och kolla ditt saldo.
+Du hittar alla commandon under "Menu" med beskrivning.
+Märk att du inte kan ångra ett köp, så var aktsam!
+Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
+Oss väl och ingen illa!`
 
 bot.use(async (ctx, next) => {
   if (!ctx.from) {
@@ -105,6 +105,19 @@ const products: {
     priceCents: '-200',
   },
 ]
+
+bot.command('inline', (ctx) => {
+  return ctx.reply('Vad vill du köpa?', {
+    parse_mode: 'HTML',
+    ...Markup.inlineKeyboard(
+      products.map(({ command, description }) => 
+      {
+      return Markup.button.callback(description, command)
+      })
+      )
+  })
+})
+
 products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
 })
