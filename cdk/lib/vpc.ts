@@ -3,7 +3,7 @@ import { SpikenStack } from './stack'
 
 export const createVPC = (stack: SpikenStack): ec2.Vpc => {
   return new ec2.Vpc(stack, 'VPC', {
-    cidr: '10.30.0.0/16',
+    ipAddresses: ec2.IpAddresses.cidr('10.30.0.0/16'),
     maxAzs: 3,
     subnetConfiguration: [
       {
