@@ -25,7 +25,14 @@ export const createECS = ({
   })
 
   const cluster = new ecs.Cluster(stack, 'ecsCluster', {
-    vpc: vpc,
+    vpc,
+  })
+
+  cluster.addCapacity('EcsRunner', {
+    instanceType: ec2.InstanceType.of(
+      ec2.InstanceClass.T3,
+      ec2.InstanceSize.MICRO
+    ),
   })
 
   const taskPolicy = new iam.ManagedPolicy(stack, 'ecsTaskPolicy', {
@@ -88,15 +95,12 @@ export const createECS = ({
   dbInstance.secret?.grantRead(ecsExecRole)
 
   const taskDefinition = new ecs.TaskDefinition(stack, 'ecsTask', {
-    compatibility: ecs.Compatibility.FARGATE,
+    compatibility: ecs.Compatibility.EC2,
     cpu: '256',
     memoryMiB: '512',
-    networkMode: ecs.NetworkMode.AWS_VPC,
+    networkMode: ecs.NetworkMode.HOST,
     taskRole: ecsRole,
     executionRole: ecsExecRole,
-    runtimePlatform: {
-      operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-    },
   })
 
   taskDefinition.addContainer('ecsContainer', {
@@ -118,14 +122,12 @@ export const createECS = ({
     logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ecsLogs' }),
   })
 
-  new ecs.FargateService(stack, 'ecsService', {
+  new ecs.Ec2Service(stack, 'ecsService', {
     cluster,
     taskDefinition,
     desiredCount: 1,
-    securityGroups: [ecsSG],
     minHealthyPercent: 100,
     maxHealthyPercent: 200,
-    assignPublicIp: true,
     enableExecuteCommand: true,
   })
 }
