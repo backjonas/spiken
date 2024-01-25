@@ -13,6 +13,7 @@ Toiveiden tynnyri:
 - Skamlistan, posta alla med negativt i chatten med en @
 - En 'vapaa myynti' command med description och summa
 - "Undo" funktionalitet
+- Transaktionshistorik för användare
 */
 
 const bot = new Telegraf(config.botToken)
