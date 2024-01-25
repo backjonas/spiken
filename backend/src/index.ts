@@ -1,11 +1,15 @@
 import { Context, Telegraf } from 'telegraf'
 import { config } from './config.js'
-import { getBalanceForMember, purchaseItemForMember } from './transactions.js'
+import {
+  exportTransactions,
+  getBalanceForMember,
+  purchaseItemForMember,
+} from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 
 /*
 Toiveiden tynnyri:
-- Admin interface, lägg till/ta bort produkter, csv transaction dump, lägg till/ta bort saldo
+- Admin interface, lägg till/ta bort produkter, lägg till/ta bort saldo
 - Skamlistan, posta alla med negativt i chatten med en @
 - En 'vapaa myynti' command med description och summa
 - "Undo" funktionalitet
@@ -24,7 +28,7 @@ bot.use(async (ctx, next) => {
   if (!ctx.from) {
     return
   }
-  if (!(await isChatMember(ctx.from.id))) {
+  if (!(await isChatMember(ctx.from.id, config.chatId))) {
     return ctx.reply('sii dej i reven!')
   }
   await next()
@@ -110,6 +114,27 @@ bot.command('start', async (ctx) => {
   return ctx.reply(info_message)
 })
 
+bot.command('exportera', async (ctx) => {
+  if (!(await isChatMember(ctx.from.id, config.adminChatId))) {
+    return ctx.reply('sii dej i reven, pleb!')
+  }
+  const res = await exportTransactions()
+  const headers = res.fields.map((field) => field.name)
+  const rows = res.rows.map((row) => {
+    return headers
+      .map((header) => {
+        return (String(row[header]) ?? '').replace(',', '')
+      })
+      .join(', ')
+  })
+  const csv = `${headers.join(', ')}
+  ${rows.join('\n')}`
+  ctx.replyWithDocument({
+    source: Buffer.from(csv, 'utf-8'),
+    filename: `spiken-dump-${new Date().toISOString()}.csv`,
+  })
+})
+
 bot.telegram.setMyCommands([
   ...commands.map(({ command, description, priceCents }) => ({
     command,
@@ -118,7 +143,7 @@ bot.telegram.setMyCommands([
     ).toFixed(2)}€`,
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
-  { command: 'info', description: 'Visar information om bottens användning'}
+  { command: 'info', description: 'Visar information om bottens användning' },
 ])
 
 bot.launch()
@@ -127,10 +152,10 @@ bot.launch()
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
-const isChatMember = async (userId: number) => {
+const isChatMember = async (userId: number, chatId: number) => {
   const acceptedStatuses = ['creator', 'administrator', 'member', 'owner']
   try {
-    const member = await bot.telegram.getChatMember(config.chatId, userId)
+    const member = await bot.telegram.getChatMember(chatId, userId)
     return acceptedStatuses.includes(member.status)
   } catch (e) {
     console.log('Error checking group membership:', e)

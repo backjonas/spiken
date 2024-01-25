@@ -42,6 +42,11 @@ export const getBalanceForMember = async (userId: number) => {
   }
 }
 
+export const exportTransactions = async () => {
+  const res = await pool.query(`SELECT * FROM transactions`)
+  return res
+}
+
 const BalanceResponseSchema = z
   .array(
     z.object({
