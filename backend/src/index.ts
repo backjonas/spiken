@@ -85,7 +85,7 @@ const commands = [
   {
     command: 'cigarr',
     description: 'Cigarr',
-    priceCents: '-1000',
+    priceCents: '-600',
   },
   {
     command: 'cognac',
