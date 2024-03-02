@@ -46,37 +46,6 @@ bot.use(async (ctx, next) => {
   await next()
 })
 
-const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
-  return async (
-    ctx: Context<{
-      message: Update.New & Update.NonChannel & Message.TextMessage
-      update_id: number
-    }>
-  ) => {
-    try {
-      await purchaseItemForMember({
-        userId: ctx.from.id,
-        userName: formatName({ ...ctx.from }),
-        description: itemDescription,
-        amountCents: itemPriceCents,
-      })
-    } catch (e) {
-      console.log('Failed to purchase item:', e)
-      return ctx.reply('Köpet misslyckades, klaga till croupieren')
-    }
-    try {
-      const balance = await getBalanceForMember(ctx.from.id)
-      return ctx.reply(`Köpet lyckades! Ditt saldo är nu ${balance}€`)
-    } catch (e) {
-      console.log('Failed to get balance:', e)
-      return ctx.reply(
-        'Köpet lyckades, men kunde inte hämta saldo. Klaga till croupieren'
-      )
-    }
-  }
-}
-
-
 const addPurchaseOptionFromReply = (itemDescription: string, itemPriceCents: string) => {
   return async (
     ctx: Context<Update.CallbackQueryUpdate>
@@ -167,10 +136,6 @@ products.forEach(({ command, description, priceCents }) => {
   bot.action(command, addPurchaseOptionFromReply(description, priceCents))
 })
 
-
-products.forEach(({ command, description, priceCents }) => {
-  bot.command(command, addPurchaseOption(description, priceCents))
-})
 
 bot.command('saldo', async (ctx) => {
   const balance = await getBalanceForMember(ctx.from.id)
@@ -273,7 +238,7 @@ bot.telegram.setMyCommands([
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
   { command: 'info', description: 'Visar information om bottens användning'},
-  { command: 'meny', description: 'Tar upp köp menyn för alla produkter'}
+  { command: 'meny', description: 'Tar upp köp menyn för alla produkter'},
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
 ])
 
