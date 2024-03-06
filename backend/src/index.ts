@@ -156,7 +156,7 @@ bot.command('historia', async (ctx) => {
 })
 
 bot.command('exportera', async (ctx) => {
-  if (!is_admin_user(ctx)) {
+  if (!await is_admin_user(ctx)) {
     return ctx.reply('sii dej i reven, pleb!')
   }
   const res = await exportTransactions()
@@ -177,7 +177,7 @@ bot.command('exportera', async (ctx) => {
 })
 
 bot.telegram.setMyCommands([
-  ...commands.map(({ command, description, priceCents }) => ({
+  ...products.map(({ command, description, priceCents }) => ({
     command,
     description: `Köp 1 st ${description} för ${(
       Number(priceCents) / -100
@@ -236,11 +236,8 @@ function cents_to_euro_string(amountInCents: number): string {
  * @param ctx 
  * @returns 
  */
-function is_admin_user(ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) {
-  var res:boolean = false
-  isChatMember(ctx.from.id, config.adminChatId).then(async_res => {
-    const res = async_res
-  })
+const is_admin_user = async (ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) =>  {
+  const res: Promise<boolean> = isChatMember(ctx.from.id, config.adminChatId)
   return res 
 }
 function format_date_to_string(date: Date){
