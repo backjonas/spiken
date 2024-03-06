@@ -1,9 +1,12 @@
 import { Context, Telegraf } from 'telegraf'
+import Table from 'cli-table'
 import { config } from './config.js'
 import {
   exportTransactions,
+  exportTransactionsForOneUser,
   getBalanceForMember,
   purchaseItemForMember,
+  Transaction
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 
@@ -71,7 +74,14 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
     }
   }
 }
-const commands = [
+
+interface Command {
+  command: string
+  description: string
+  priceCents: string
+}
+
+const commands: Command[] = [
   {
     command: 'patron',
     description: 'Patron',
@@ -96,7 +106,7 @@ const commands = [
     command: 'snaps',
     description: 'Snaps',
     priceCents: '-200',
-  },
+  }
 ]
 commands.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
@@ -115,8 +125,53 @@ bot.command('start', async (ctx) => {
   return ctx.reply(info_message)
 })
 
+interface HistoryRow {
+  created_at: Date;
+  description: string;
+  amount_cents: number;
+  cumulative_sum: number;
+}
+
+bot.command('historia', async (ctx) => {
+  const history = await exportTransactionsForOneUser(ctx.from.id)
+
+  const parsed_history = history.rows.map(({created_at, description, amount_cents}) => {
+    const new_row: HistoryRow = {
+      created_at,
+      description,
+      amount_cents,
+      cumulative_sum: 0
+    }
+    return new_row;
+})
+  let cumulativeSum = 0;
+  parsed_history.forEach(row => {
+    cumulativeSum -= row.amount_cents;
+    row.cumulative_sum = cumulativeSum;
+  });
+
+  const formated_history =  new Table({
+    head: ['Tid', 'Produkt', 'Pris', 'Saldo efter transaktionen']
+  });
+
+  parsed_history.forEach(row => {
+    formated_history.push([
+      `${row.created_at.toLocaleDateString('sv-fi')} ${row.created_at.toLocaleTimeString('sv-fi')}`,
+      row.description,
+      cents_to_euro_string(row.amount_cents),
+      cents_to_euro_string(row.cumulative_sum)
+    ]);
+  });
+
+  const res = `Ditt nuvarande saldo är ${cents_to_euro_string(parsed_history[parsed_history.length -1].cumulative_sum)}.Här är din historia:
+  \`\`\`${formated_history.toString()}\`\`\``
+
+  return ctx.reply(res, {parse_mode: "Markdown"})
+})
+
+// Checka de här att de fungerar ännu
 bot.command('exportera', async (ctx) => {
-  if (!(await isChatMember(ctx.from.id, config.adminChatId))) {
+  if (!await is_admin_user(ctx)) {
     return ctx.reply('sii dej i reven, pleb!')
   }
   const res = await exportTransactions()
@@ -145,6 +200,7 @@ bot.telegram.setMyCommands([
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
   { command: 'info', description: 'Visar information om bottens användning' },
+  { command: 'historia', description: 'Se din egna transaktionshistorik'}
 ])
 
 bot.launch()
@@ -177,3 +233,17 @@ const formatName = ({
   const formattedUserName = username ? ` (${username})` : ``
   return `${first_name}${formattedLastName}${formattedUserName}`
 }
+
+function cents_to_euro_string(cents: number): string {
+  return ( cents / -100).toString() + "€"
+}
+
+/**
+ * Checks if the user is in the admin chat
+ * @param ctx 
+ * @returns 
+ */
+async function is_admin_user(ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) {
+  return await isChatMember(ctx.from.id, config.adminChatId)
+}
+

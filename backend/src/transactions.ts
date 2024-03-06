@@ -1,7 +1,17 @@
 import { z } from 'zod'
 import { pool } from './db.js'
+import { QueryResult } from 'pg'
 
-interface Transaction {
+export interface Transaction {
+  id: number
+  created_at: Date
+  userId: number
+  userName: string
+  description: string
+  amount_cents: number
+}
+
+export interface TransactionInsert {
   userId: number
   userName: string
   description: string
@@ -13,7 +23,7 @@ export const purchaseItemForMember = async ({
   userName,
   description,
   amountCents,
-}: Transaction) => {
+}: TransactionInsert) => {
   await pool.query(
     `INSERT INTO transactions(
     user_id,
@@ -42,8 +52,16 @@ export const getBalanceForMember = async (userId: number) => {
   }
 }
 
-export const exportTransactions = async () => {
+export const exportTransactions = async () =>  {
   const res = await pool.query(`SELECT * FROM transactions`)
+  return res
+}
+
+export const exportTransactionsForOneUser = async (userId: number): Promise<QueryResult<Transaction>> => {
+  const res = await pool.query(
+    `SELECT * FROM transactions WHERE user_id = $1 ORDER BY id`,
+    [userId]
+  )
   return res
 }
 
