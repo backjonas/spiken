@@ -151,14 +151,14 @@ bot.command('historia', async (ctx) => {
 
   parsed_history.forEach(row => {
     formated_history.push([
-      `${row.created_at.toLocaleDateString('sv-fi')} ${row.created_at.toLocaleTimeString('sv-fi')}`,
+      `${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}`,
       row.description,
       cents_to_euro_string(row.amount_cents),
       cents_to_euro_string(row.cumulative_sum)
     ]);
   });
 
-  const res = `Ditt nuvarande saldo är ${cents_to_euro_string(parsed_history[parsed_history.length -1].cumulative_sum)}.Här är din historia:
+  const res = `Ditt nuvarande saldo är ${cents_to_euro_string(parsed_history[0].cumulative_sum)}. Här är din historia:
   \`\`\`${formated_history.toString()}\`\`\``
 
   return ctx.reply(res, {parse_mode: "Markdown"})
@@ -228,7 +228,11 @@ const formatName = ({
   const formattedUserName = username ? ` (${username})` : ``
   return `${first_name}${formattedLastName}${formattedUserName}`
 }
-
+/**
+ * Formats from number of cent to a string in euro. I.e. -350 becomes "-3.5€"
+ * @param cents 
+ * @returns 
+ */
 function cents_to_euro_string(cents: number): string {
   return ( cents / -100).toString() + "€"
 }
@@ -240,5 +244,8 @@ function cents_to_euro_string(cents: number): string {
  */
 async function is_admin_user(ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) {
   return await isChatMember(ctx.from.id, config.adminChatId)
+}
+function format_date_to_string(date: Date){
+ return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} ${date.toLocaleDateString('sv-fi', {weekday: 'short'})}`;
 }
 
