@@ -53,6 +53,7 @@ export const getBalanceForMember = async (userId: number) => {
   }
 }
 
+//Return type should be Promise<QueryResult<Transaction>> but that breaks the function in index.
 export const exportTransactions = async () =>  {
   const res = await pool.query(`SELECT * FROM transactions`)
   return res

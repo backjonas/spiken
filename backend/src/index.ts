@@ -6,9 +6,9 @@ import {
   exportTransactionsForOneUser,
   getBalanceForMember,
   purchaseItemForMember,
-  Transaction
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
+import { BotCommand } from 'telegraf/typings/core/types/typegram.js'
 
 /*
 Toiveiden tynnyri:
@@ -81,7 +81,7 @@ interface Command {
   priceCents: string
 }
 
-const commands: Command[] = [
+const products: Command[] = [
   {
     command: 'patron',
     description: 'Patron',
@@ -108,7 +108,7 @@ const commands: Command[] = [
     priceCents: '-200',
   }
 ]
-commands.forEach(({ command, description, priceCents }) => {
+products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
 })
 
@@ -134,7 +134,7 @@ interface HistoryRow {
 
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id)
-  console.log(history)
+
   const parsed_history = history.rows.map(({created_at, description, amount_cents, cumulative_sum}) => {
     const new_row: HistoryRow = {
       created_at,
@@ -145,28 +145,18 @@ bot.command('historia', async (ctx) => {
     return new_row;
 })
 
-  const formated_history =  new Table({
-    head: ['Tid', 'Produkt', 'Pris', 'Saldo efter transaktionen']
-  });
-
+  var res = `Ditt nuvarande saldo är ${cents_to_euro_string(parsed_history[0].cumulative_sum)}. Här är din historia:\`\`\``
   parsed_history.forEach(row => {
-    formated_history.push([
-      `${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}`,
-      row.description,
-      cents_to_euro_string(row.amount_cents),
-      cents_to_euro_string(row.cumulative_sum)
-    ]);
-  });
-
-  const res = `Ditt nuvarande saldo är ${cents_to_euro_string(parsed_history[0].cumulative_sum)}. Här är din historia:
-  \`\`\`${formated_history.toString()}\`\`\``
-
+    res +=  `\n${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
+    `${cents_to_euro_string(-row.amount_cents)}, `+
+    `${row.description}`
+  })
+  res += "\`\`\`"
   return ctx.reply(res, {parse_mode: "Markdown"})
 })
 
-// Checka de här att de fungerar ännu
 bot.command('exportera', async (ctx) => {
-  if (!await is_admin_user(ctx)) {
+  if (!is_admin_user(ctx)) {
     return ctx.reply('sii dej i reven, pleb!')
   }
   const res = await exportTransactions()
@@ -195,7 +185,7 @@ bot.telegram.setMyCommands([
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
   { command: 'info', description: 'Visar information om bottens användning' },
-  { command: 'historia', description: 'Se din egna transaktionshistorik'}
+  { command: 'historia', description: 'Se din egna transaktionshistorik' }
 ])
 
 bot.launch()
@@ -230,11 +220,15 @@ const formatName = ({
 }
 /**
  * Formats from number of cent to a string in euro. I.e. -350 becomes "-3.5€"
- * @param cents 
+ * @param amountInCents 
  * @returns 
  */
-function cents_to_euro_string(cents: number): string {
-  return ( cents / -100).toString() + "€"
+function cents_to_euro_string(amountInCents: number): string {
+  var euro = (amountInCents / -100).toFixed(2).toString()
+  if (euro[0] !== '-') {
+    euro = " " + euro
+  }
+  return euro + "€"
 }
 
 /**
@@ -242,10 +236,14 @@ function cents_to_euro_string(cents: number): string {
  * @param ctx 
  * @returns 
  */
-async function is_admin_user(ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) {
-  return await isChatMember(ctx.from.id, config.adminChatId)
+function is_admin_user(ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) {
+  var res:boolean = false
+  isChatMember(ctx.from.id, config.adminChatId).then(async_res => {
+    const res = async_res
+  })
+  return res 
 }
 function format_date_to_string(date: Date){
- return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} ${date.toLocaleDateString('sv-fi', {weekday: 'short'})}`;
+ return `${date.toLocaleDateString('sv-fi', {year: '2-digit', month: '2-digit', day: '2-digit'})} ${date.toLocaleDateString('sv-fi', {weekday: 'short'})}`;
 }
 
