@@ -8,7 +8,8 @@ export interface Transaction {
   userId: number
   userName: string
   description: string
-  amount_cents: number
+  amount_cents: number,
+  cumulative_sum: number
 }
 
 export interface TransactionInsert {
@@ -59,7 +60,11 @@ export const exportTransactions = async () =>  {
 
 export const exportTransactionsForOneUser = async (userId: number): Promise<QueryResult<Transaction>> => {
   const res = await pool.query(
-    `SELECT * FROM transactions WHERE user_id = $1 ORDER BY id`,
+    `SELECT *,
+      SUM(amount_cents) OVER (ORDER BY id) AS cumulative_sum
+     FROM transactions
+     WHERE user_id = $1
+     ORDER BY id`,
     [userId]
   )
   return res

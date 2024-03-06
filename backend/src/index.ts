@@ -134,21 +134,16 @@ interface HistoryRow {
 
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id)
-
-  const parsed_history = history.rows.map(({created_at, description, amount_cents}) => {
+  console.log(history)
+  const parsed_history = history.rows.map(({created_at, description, amount_cents, cumulative_sum}) => {
     const new_row: HistoryRow = {
       created_at,
       description,
       amount_cents,
-      cumulative_sum: 0
+      cumulative_sum
     }
     return new_row;
 })
-  let cumulativeSum = 0;
-  parsed_history.forEach(row => {
-    cumulativeSum -= row.amount_cents;
-    row.cumulative_sum = cumulativeSum;
-  });
 
   const formated_history =  new Table({
     head: ['Tid', 'Produkt', 'Pris', 'Saldo efter transaktionen']
