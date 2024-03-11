@@ -1,5 +1,4 @@
 import { Context, Telegraf } from 'telegraf'
-import Table from 'cli-table'
 import { config } from './config.js'
 import {
   exportTransactions,

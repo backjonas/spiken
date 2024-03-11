@@ -13,7 +13,6 @@
   "devDependencies": {
     "@types/node": "^20.8.4",
     "@types/pg": "^8.10.5",
-    "@types/cli-table": "^0.3.4",
     "prettier": "3.0.3",
     "tsc-watch": "^6.0.4",
     "typescript": "^5.2.2"
@@ -22,7 +21,6 @@
     "dotenv": "^16.3.1",
     "pg": "^8.11.3",
     "telegraf": "^4.14.0",
-    "zod": "^3.22.4",
-    "cli-table": "^0.3.11"
+    "zod": "^3.22.4"
   }
 }
