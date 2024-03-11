@@ -74,13 +74,12 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   }
 }
 
-interface Command {
+
+const products: {
   command: string
   description: string
   priceCents: string
-}
-
-const products: Command[] = [
+  }[] = [
   {
     command: 'patron',
     description: 'Patron',
@@ -137,7 +136,7 @@ bot.command('historia', async (ctx) => {
   const saldo = await getBalanceForMember(ctx.from.id)
   var res = `Ditt nuvarande saldo är ${saldo}. Här är din historia:\`\`\``
   parsedHistory.forEach(row => {
-    res +=  `\n${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
+    res +=  `\n${formatDateToString(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
     `${cents_to_euro_string(-row.amount_cents)}, `+
     `${row.description}`
   })
@@ -146,7 +145,7 @@ bot.command('historia', async (ctx) => {
 })
 
 bot.command('historia_all', async (ctx) => {
-  if (!await is_admin_user(ctx)) {
+  if (!await isAdminUser(ctx)) {
     return ctx.reply('Nå huhhu, håll dig ti ditt egna dåkande!')
   }
   const history = await exportTransactions()
@@ -163,7 +162,7 @@ bot.command('historia_all', async (ctx) => {
   var res = `\`\`\``
   parsedHistory.forEach(row => {
     res +=  `\n${row.user_name.split(" ").slice(0,-1).join(" ")}, ` +
-    `${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
+    `${formatDateToString(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
     `${cents_to_euro_string(-row.amount_cents)}, `+
     `${row.description}`
   })
@@ -172,7 +171,7 @@ bot.command('historia_all', async (ctx) => {
 })
 
 bot.command('exportera', async (ctx) => {
-  if (!await is_admin_user(ctx)) {
+  if (!await isAdminUser(ctx)) {
     return ctx.reply('sii dej i reven, pleb!')
   }
   // Temp solution until I or Bäck fixes the error this produces
@@ -253,11 +252,11 @@ function cents_to_euro_string(amountInCents: number): string {
  * @param ctx 
  * @returns 
  */
-const is_admin_user = async (ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) =>  {
+const isAdminUser = async (ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) =>  {
   const res: Promise<boolean> = isChatMember(ctx.from.id, config.adminChatId)
   return res 
 }
-function format_date_to_string(date: Date){
+function formatDateToString(date: Date){
  return `${date.toLocaleDateString('sv-fi', {year: '2-digit', month: '2-digit', day: '2-digit'})} ${date.toLocaleDateString('sv-fi', {weekday: 'short'})}`;
 }
 
