@@ -25,7 +25,9 @@
 			},
 			"[typescript]": {
 				"editor.defaultFormatter": "esbenp.prettier-vscode"
-			}
+			},
+			"prettier.configPath": "./backend/.prettierrc.json",
+			"editor.formatOnSave": true
 		}
 	}
 
