@@ -7,7 +7,7 @@ import {
   purchaseItemForMember,
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
-import { BotCommand } from 'telegraf/typings/core/types/typegram.js'
+import { QueryResult } from 'pg'
 
 /*
 Toiveiden tynnyri:
@@ -124,29 +124,46 @@ bot.command('start', async (ctx) => {
   return ctx.reply(info_message)
 })
 
-interface HistoryRow {
-  created_at: Date;
-  description: string;
-  amount_cents: number;
-  cumulative_sum: number;
-}
-
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id)
 
-  const parsed_history = history.rows.map(({created_at, description, amount_cents, cumulative_sum}) => {
-    const new_row: HistoryRow = {
+  const parsedHistory = history.rows.map(({created_at, description, amount_cents}) => {
+    return {
       created_at,
       description,
-      amount_cents,
-      cumulative_sum
+      amount_cents
     }
-    return new_row;
+})
+  const saldo = await getBalanceForMember(ctx.from.id)
+  var res = `Ditt nuvarande saldo är ${saldo}. Här är din historia:\`\`\``
+  parsedHistory.forEach(row => {
+    res +=  `\n${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
+    `${cents_to_euro_string(-row.amount_cents)}, `+
+    `${row.description}`
+  })
+  res += "\`\`\`"
+  return ctx.reply(res, {parse_mode: "Markdown"})
 })
 
-  var res = `Ditt nuvarande saldo är ${cents_to_euro_string(parsed_history[0].cumulative_sum)}. Här är din historia:\`\`\``
-  parsed_history.forEach(row => {
-    res +=  `\n${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
+bot.command('historia_all', async (ctx) => {
+  if (!await is_admin_user(ctx)) {
+    return ctx.reply('Nå huhhu, håll dig ti ditt egna dåkande!')
+  }
+  const history = await exportTransactions()
+
+  const parsedHistory = history.rows.map(({user_name , created_at, description, amount_cents}) => {
+    return {
+      user_name,
+      created_at,
+      description,
+      amount_cents
+    }
+})
+
+  var res = `\`\`\``
+  parsedHistory.forEach(row => {
+    res +=  `\n${row.user_name.split(" ").slice(0,-1).join(" ")}, ` +
+    `${format_date_to_string(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
     `${cents_to_euro_string(-row.amount_cents)}, `+
     `${row.description}`
   })
@@ -158,7 +175,8 @@ bot.command('exportera', async (ctx) => {
   if (!await is_admin_user(ctx)) {
     return ctx.reply('sii dej i reven, pleb!')
   }
-  const res = await exportTransactions()
+  // Temp solution until I or Bäck fixes the error this produces
+  const res: QueryResult<any> = await exportTransactions()
   const headers = res.fields.map((field) => field.name)
   const rows = res.rows.map((row) => {
     return headers

@@ -6,10 +6,9 @@ export interface Transaction {
   id: number
   created_at: Date
   userId: number
-  userName: string
+  user_name: string
   description: string
-  amount_cents: number,
-  cumulative_sum: number
+  amount_cents: number
 }
 
 export interface TransactionInsert {
@@ -54,25 +53,20 @@ export const getBalanceForMember = async (userId: number) => {
 }
 
 //Return type should be Promise<QueryResult<Transaction>> but that breaks the function in index.
-export const exportTransactions = async () =>  {
+export const exportTransactions = async (): Promise<QueryResult<Transaction>> =>  {
   const res = await pool.query(`SELECT * FROM transactions`)
   return res
 }
 
-export const exportTransactionsForOneUser = async (userId: number, transaction_limit: number = 30): Promise<QueryResult<Transaction>> => {
+export const exportTransactionsForOneUser = async (userId: number): Promise<QueryResult<Transaction>> => {
   const res = await pool.query(
     `--sql
-    WITH sub_query AS (
-      SELECT *,
-        SUM(-amount_cents) OVER (ORDER BY id) AS cumulative_sum
+      SELECT *
       FROM transactions
       WHERE user_id = $1
-      ORDER BY id)
-     SELECT * 
-     FROM sub_query
-     ORDER BY id DESC
-     LIMIT $2`,
-    [userId, transaction_limit]
+      ORDER BY id DESC
+      LIMIT 30`,
+    [userId]
   )
   return res
 }
