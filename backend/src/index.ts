@@ -154,7 +154,7 @@ bot.command('meny', (ctx) => {
     {
       return Markup.button.callback(description, command)
     }))
-    console.log(`${ctx.from.first_name} testa botten`)
+
   return ctx.reply(`Vad vill du köpa? Produkternas pris: ${pris_list}`, {
     ... Markup.inlineKeyboard(keyboard_array)
   })
