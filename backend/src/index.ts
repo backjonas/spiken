@@ -18,8 +18,6 @@ Toiveiden tynnyri:
 - Transaktionshistorik för användare
 */
 
-
-
 const bot = new Telegraf(config.botToken)
 
 const info_message = `Hej, välkommen till STF spik bot!
@@ -71,7 +69,7 @@ const products = [
     command: 'snaps',
     description: 'Snaps',
     priceCents: '-200',
-  }
+  },
 ]
 
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
@@ -104,19 +102,17 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   }
 }
 
-
 products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
 })
 
-const addPurchaseOptionFromInline = (itemDescription: string, itemPriceCents: string) => {
-  return async (
-    ctx: Context<Update.CallbackQueryUpdate>
-  ) => {
-    if (ctx.from === undefined){
-      return ctx.editMessageText(
-        'Köpet misslyckades, klaga till croupieren.'
-      )
+const addPurchaseOptionFromInline = (
+  itemDescription: string,
+  itemPriceCents: string
+) => {
+  return async (ctx: Context<Update.CallbackQueryUpdate>) => {
+    if (ctx.from === undefined) {
+      return ctx.editMessageText('Köpet misslyckades, klaga till croupieren.')
     }
     try {
       await purchaseItemForMember({
@@ -132,7 +128,11 @@ const addPurchaseOptionFromInline = (itemDescription: string, itemPriceCents: st
     try {
       const balance = await getBalanceForMember(ctx.from.id)
       ctx.answerCbQuery()
-      return ctx.editMessageText(`Köpet av ${itemDescription} för ${Number(itemPriceCents)/-100}€ lyckades! Ditt saldo är nu ${balance}€`)
+      return ctx.editMessageText(
+        `Köpet av ${itemDescription} för ${
+          Number(itemPriceCents) / -100
+        }€ lyckades! Ditt saldo är nu ${balance}€`
+      )
     } catch (e) {
       ctx.answerCbQuery()
       console.log('Failed to get balance:', e)
@@ -143,27 +143,24 @@ const addPurchaseOptionFromInline = (itemDescription: string, itemPriceCents: st
   }
 }
 
-
 bot.command('meny', (ctx) => {
-  const pris_list = products.map(({ command, description, priceCents }) => 
-  {
-    return `\n${description} - ${Number(priceCents)/-100}€`
+  const priceList = products.map(({ command, description, priceCents }) => {
+    return `\n${description} - ${Number(priceCents) / -100}€`
   })
   const keyboard_array = formatButtonArray(
-    products.map(({ command, description }) => 
-    {
+    products.map(({ command, description }) => {
       return Markup.button.callback(description, command)
-    }))
+    })
+  )
 
-  return ctx.reply(`Vad vill du köpa? Produkternas pris: ${pris_list}`, {
-    ... Markup.inlineKeyboard(keyboard_array)
+  return ctx.reply(`Vad vill du köpa? Produkternas pris: ${priceList}`, {
+    ...Markup.inlineKeyboard(keyboard_array),
   })
 })
 
 products.forEach(({ command, description, priceCents }) => {
   bot.action(command, addPurchaseOptionFromInline(description, priceCents))
 })
-
 
 bot.command('saldo', async (ctx) => {
   const balance = await getBalanceForMember(ctx.from.id)
@@ -265,8 +262,8 @@ bot.telegram.setMyCommands([
     ).toFixed(2)}€`,
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
-  { command: 'info', description: 'Visar information om bottens användning'},
-  { command: 'meny', description: 'Tar upp köp menyn för alla produkter'},
+  { command: 'info', description: 'Visar information om bottens användning' },
+  { command: 'meny', description: 'Tar upp köp menyn för alla produkter' },
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
 ])
 
@@ -338,13 +335,13 @@ function formatDateToString(date: Date) {
 
 /**
  * Splits a array into an array of arrays with max n elements per subarray
- * 
+ *
  * n defaults to 3
  */
 function formatButtonArray(array: any[], n: number = 3): any[][] {
-  const result = [];
+  const result = []
   for (let i = 0; i < array.length; i += n) {
-      result.push(array.slice(i, i + n));
+    result.push(array.slice(i, i + n))
   }
-  return result;
+  return result
 }
