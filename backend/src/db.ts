@@ -18,3 +18,13 @@ await pool.query(
   );
   `
 )
+
+await pool.query(
+  `CREATE TABLE IF NOT EXISTS products(
+    id SERIAL,
+    name TEXT,
+    description TEXT,
+    amount_cents INTEGER
+  );
+  `
+)

@@ -8,6 +8,7 @@ import {
 import { Message, Update } from '@telegraf/types'
 import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
+import { getProducts } from './products.js'
 
 /*
 Toiveiden tynnyri:
@@ -72,6 +73,31 @@ const products = [
   },
 ]
 
+// const products = getProducts()
+
+interface ProductArray   {
+  command: string,
+  description: string,
+  priceCents: string
+}
+
+const productsToArray =  async (): ProductArray[] => {
+  const productQuery =  getProducts()
+  const res = productQuery.then(
+      productObj => productObj.rows.map(({name, description, priceCents}) => {
+        return {
+          'command': name,
+          description,
+          priceCents
+        }
+      }
+    )
+  )
+  return res
+}
+
+const test = productsToArray()
+
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
     ctx: Context<{
@@ -101,6 +127,7 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
     }
   }
 }
+
 
 products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
