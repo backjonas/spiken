@@ -74,12 +74,11 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   }
 }
 
-
 const products: {
   command: string
   description: string
   priceCents: string
-  }[] = [
+}[] = [
   {
     command: 'patron',
     description: 'Patron',
@@ -104,7 +103,7 @@ const products: {
     command: 'snaps',
     description: 'Snaps',
     priceCents: '-200',
-  }
+  },
 ]
 products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
@@ -126,52 +125,62 @@ bot.command('start', async (ctx) => {
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id)
 
-  const parsedHistory = history.rows.map(({created_at, description, amount_cents}) => {
-    return {
-      created_at,
-      description,
-      amount_cents
+  const parsedHistory = history.rows.map(
+    ({ created_at, description, amount_cents }) => {
+      return {
+        created_at,
+        description,
+        amount_cents,
+      }
     }
-})
+  )
   const saldo = await getBalanceForMember(ctx.from.id)
   var res = `Ditt nuvarande saldo är ${saldo}. Här är din historia:\`\`\``
-  parsedHistory.forEach(row => {
-    res +=  `\n${formatDateToString(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
-    `${cents_to_euro_string(-row.amount_cents)}, `+
-    `${row.description}`
+  parsedHistory.forEach((row) => {
+    res +=
+      `\n${formatDateToString(
+        row.created_at
+      )} ${row.created_at.toLocaleTimeString('sv-fi')}, ` +
+      `${centsToEuroString(-row.amount_cents)}, ` +
+      `${row.description}`
   })
-  res += "\`\`\`"
-  return ctx.reply(res, {parse_mode: "Markdown"})
+  res += '```'
+  return ctx.reply(res, { parse_mode: 'Markdown' })
 })
 
 bot.command('historia_all', async (ctx) => {
-  if (!await isAdminUser(ctx)) {
+  if (!(await isAdminUser(ctx))) {
     return ctx.reply('Nå huhhu, håll dig ti ditt egna dåkande!')
   }
   const history = await exportTransactions()
 
-  const parsedHistory = history.rows.map(({user_name , created_at, description, amount_cents}) => {
-    return {
-      user_name,
-      created_at,
-      description,
-      amount_cents
+  const parsedHistory = history.rows.map(
+    ({ user_name, created_at, description, amount_cents }) => {
+      return {
+        user_name,
+        created_at,
+        description,
+        amount_cents,
+      }
     }
-})
+  )
 
   var res = `\`\`\``
-  parsedHistory.forEach(row => {
-    res +=  `\n${row.user_name.split(" ").slice(0,-1).join(" ")}, ` +
-    `${formatDateToString(row.created_at)} ${row.created_at.toLocaleTimeString('sv-fi')}, `+
-    `${cents_to_euro_string(-row.amount_cents)}, `+
-    `${row.description}`
+  parsedHistory.forEach((row) => {
+    res +=
+      `\n${row.user_name.split(' ').slice(0, -1).join(' ')}, ` +
+      `${formatDateToString(
+        row.created_at
+      )} ${row.created_at.toLocaleTimeString('sv-fi')}, ` +
+      `${centsToEuroString(-row.amount_cents)}, ` +
+      `${row.description}`
   })
-  res += "\`\`\`"
-  return ctx.reply(res, {parse_mode: "Markdown"})
+  res += '```'
+  return ctx.reply(res, { parse_mode: 'Markdown' })
 })
 
 bot.command('exportera', async (ctx) => {
-  if (!await isAdminUser(ctx)) {
+  if (!(await isAdminUser(ctx))) {
     return ctx.reply('sii dej i reven, pleb!')
   }
   // Temp solution until I or Bäck fixes the error this produces
@@ -201,7 +210,7 @@ bot.telegram.setMyCommands([
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
   { command: 'info', description: 'Visar information om bottens användning' },
-  { command: 'historia', description: 'Se din egna transaktionshistorik' }
+  { command: 'historia', description: 'Se din egna transaktionshistorik' },
 ])
 
 bot.launch()
@@ -236,27 +245,36 @@ const formatName = ({
 }
 /**
  * Formats from number of cent to a string in euro. I.e. -350 becomes "-3.5€"
- * @param amountInCents 
- * @returns 
+ * @param amountInCents
+ * @returns
  */
-function cents_to_euro_string(amountInCents: number): string {
+function centsToEuroString(amountInCents: number): string {
   var euro = (amountInCents / -100).toFixed(2).toString()
   if (euro[0] !== '-') {
-    euro = " " + euro
+    euro = ' ' + euro
   }
-  return euro + "€"
+  return euro + '€'
 }
 
 /**
  * Checks if the user is in the admin chat
- * @param ctx 
- * @returns 
+ * @param ctx
+ * @returns
  */
-const isAdminUser = async (ctx: Context<{ message: Update.New & Update.NonChannel & Message.TextMessage; update_id: number }> & Omit<Context<Update>, keyof Context<Update>>) =>  {
+const isAdminUser = async (
+  ctx: Context<{
+    message: Update.New & Update.NonChannel & Message.TextMessage
+    update_id: number
+  }> &
+    Omit<Context<Update>, keyof Context<Update>>
+) => {
   const res: Promise<boolean> = isChatMember(ctx.from.id, config.adminChatId)
-  return res 
+  return res
 }
-function formatDateToString(date: Date){
- return `${date.toLocaleDateString('sv-fi', {year: '2-digit', month: '2-digit', day: '2-digit'})} ${date.toLocaleDateString('sv-fi', {weekday: 'short'})}`;
+function formatDateToString(date: Date) {
+  return `${date.toLocaleDateString('sv-fi', {
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+  })} ${date.toLocaleDateString('sv-fi', { weekday: 'short' })}`
 }
-
