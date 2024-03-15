@@ -1,4 +1,4 @@
-import { Context, Telegraf } from 'telegraf'
+import { Context, Markup, Telegraf } from 'telegraf'
 import { config } from './config.js'
 import {
   exportTransactions,
@@ -21,11 +21,11 @@ Toiveiden tynnyri:
 const bot = new Telegraf(config.botToken)
 
 const info_message = `Hej, välkommen till STF spik bot!
-  Här kan du köra köp och kolla ditt saldo.
-  Du hittar alla commandon under "Menu" med beskrivning.
-  Märk att du inte kan ångra ett köp, så var aktsam!
-  Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
-  Oss väl och ingen illa!`
+Här kan du köra köp och kolla ditt saldo.
+Du hittar alla commandon under "Menu" med beskrivning.
+Märk att du inte kan ångra ett köp, så var aktsam!
+Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
+Oss väl och ingen illa!`
 
 bot.use(async (ctx, next) => {
   if (!ctx.from) {
@@ -43,6 +43,34 @@ bot.use(async (ctx, next) => {
   }
   await next()
 })
+
+const products = [
+  {
+    command: 'patron',
+    description: 'Patron',
+    priceCents: '-1200',
+  },
+  {
+    command: 'kalja',
+    description: 'Öl',
+    priceCents: '-150',
+  },
+  {
+    command: 'cigarr',
+    description: 'Cigarr',
+    priceCents: '-600',
+  },
+  {
+    command: 'cognac',
+    description: 'Cognac',
+    priceCents: '-200',
+  },
+  {
+    command: 'snaps',
+    description: 'Snaps',
+    priceCents: '-200',
+  },
+]
 
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
@@ -74,39 +102,64 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   }
 }
 
-const products: {
-  command: string
-  description: string
-  priceCents: string
-}[] = [
-  {
-    command: 'patron',
-    description: 'Patron',
-    priceCents: '-1200',
-  },
-  {
-    command: 'kalja',
-    description: 'Öl',
-    priceCents: '-150',
-  },
-  {
-    command: 'cigarr',
-    description: 'Cigarr',
-    priceCents: '-600',
-  },
-  {
-    command: 'cognac',
-    description: 'Cognac',
-    priceCents: '-200',
-  },
-  {
-    command: 'snaps',
-    description: 'Snaps',
-    priceCents: '-200',
-  },
-]
 products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
+})
+
+const addPurchaseOptionFromInline = (
+  itemDescription: string,
+  itemPriceCents: string
+) => {
+  return async (ctx: Context<Update.CallbackQueryUpdate>) => {
+    if (ctx.from === undefined) {
+      return ctx.editMessageText('Köpet misslyckades, klaga till croupieren.')
+    }
+    try {
+      await purchaseItemForMember({
+        userId: ctx.from.id,
+        userName: formatName({ ...ctx.from }),
+        description: itemDescription,
+        amountCents: itemPriceCents,
+      })
+    } catch (e) {
+      console.log('Failed to purchase item:', e)
+      return ctx.editMessageText('Köpet misslyckades, klaga till croupieren')
+    }
+    try {
+      const balance = await getBalanceForMember(ctx.from.id)
+      ctx.answerCbQuery()
+      return ctx.editMessageText(
+        `Köpet av ${itemDescription} för ${
+          Number(itemPriceCents) / -100
+        }€ lyckades! Ditt saldo är nu ${balance}€`
+      )
+    } catch (e) {
+      ctx.answerCbQuery()
+      console.log('Failed to get balance:', e)
+      return ctx.editMessageText(
+        'Köpet lyckades, men kunde inte hämta saldo. Klaga till croupieren'
+      )
+    }
+  }
+}
+
+bot.command('meny', (ctx) => {
+  const priceList = products.map(({ command, description, priceCents }) => {
+    return `\n${description} - ${Number(priceCents) / -100}€`
+  })
+  const keyboard_array = formatButtonArray(
+    products.map(({ command, description }) => {
+      return Markup.button.callback(description, command)
+    })
+  )
+
+  return ctx.reply(`Vad vill du köpa? Produkternas pris: ${priceList}`, {
+    ...Markup.inlineKeyboard(keyboard_array),
+  })
+})
+
+products.forEach(({ command, description, priceCents }) => {
+  bot.action(command, addPurchaseOptionFromInline(description, priceCents))
 })
 
 bot.command('saldo', async (ctx) => {
@@ -210,6 +263,7 @@ bot.telegram.setMyCommands([
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
   { command: 'info', description: 'Visar information om bottens användning' },
+  { command: 'meny', description: 'Tar upp köp menyn för alla produkter' },
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
 ])
 
@@ -277,4 +331,17 @@ function formatDateToString(date: Date) {
     month: '2-digit',
     day: '2-digit',
   })} ${date.toLocaleDateString('sv-fi', { weekday: 'short' })}`
+}
+
+/**
+ * Splits a array into an array of arrays with max n elements per subarray
+ *
+ * n defaults to 3
+ */
+function formatButtonArray(array: any[], n: number = 3): any[][] {
+  const result = []
+  for (let i = 0; i < array.length; i += n) {
+    result.push(array.slice(i, i + n))
+  }
+  return result
 }
