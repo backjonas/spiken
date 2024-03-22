@@ -1,7 +1,7 @@
 import { pool } from './db.js'
 import { QueryResult } from 'pg'
 
-interface ProductIn {
+export interface ProductIn {
   name: string
   description: string
   priceCents: string
@@ -11,7 +11,7 @@ export interface Product {
   productId: number
   name: string
   description: string
-  priceCents: string
+  price_cents: string
 }
 
 export const addProduct = async ({
@@ -23,7 +23,7 @@ export const addProduct = async ({
     `INSERT INTO products(
     name,
     description,
-    amount_cents
+    price_cents
   ) VALUES (
     $1, $2, $3
   )`,
@@ -31,11 +31,11 @@ export const addProduct = async ({
   )
 }
 
-export const deleteProduct = async ({ produktId }: { produktId: number }) => {
+export const deleteProduct = async (productName: string) => {
   await pool.query(
     `DELETE FROM products
-    where id = $1`,
-    [produktId]
+    where name = $1`,
+    [productName]
   )
 }
 
@@ -43,7 +43,7 @@ export const editProduct = async ({
   productId,
   name,
   description,
-  priceCents: amountCents,
+  price_cents: amountCents,
 }: Product) => {
   await pool.query(
     `UPDATE table_name

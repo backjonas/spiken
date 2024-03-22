@@ -1,4 +1,4 @@
-import { Context, Markup, Telegraf } from 'telegraf'
+import { Context, Markup, Telegraf, session } from 'telegraf'
 import { config } from './config.js'
 import {
   exportTransactionsForOneUser,
@@ -8,7 +8,8 @@ import {
 import { Message, Update } from '@telegraf/types'
 import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
-import { getProducts } from './products.js'
+import { deleteProduct, getProducts } from './products.js'
+import { MyContext, stage } from './product_handling.js'
 
 /*
 Toiveiden tynnyri:
@@ -19,7 +20,7 @@ Toiveiden tynnyri:
 - Transaktionshistorik för användare
 */
 
-const bot = new Telegraf(config.botToken)
+const bot = new Telegraf<MyContext>(config.botToken)
 
 const info_message = `Hej, välkommen till STF spik bot!
 Här kan du köra köp och kolla ditt saldo.
@@ -45,58 +46,67 @@ bot.use(async (ctx, next) => {
   await next()
 })
 
-const products = [
-  {
-    command: 'patron',
-    description: 'Patron',
-    priceCents: '-1200',
-  },
-  {
-    command: 'kalja',
-    description: 'Öl',
-    priceCents: '-150',
-  },
-  {
-    command: 'cigarr',
-    description: 'Cigarr',
-    priceCents: '-600',
-  },
-  {
-    command: 'cognac',
-    description: 'Cognac',
-    priceCents: '-200',
-  },
-  {
-    command: 'snaps',
-    description: 'Snaps',
-    priceCents: '-200',
-  },
-]
+bot.use(session())
+bot.use(stage.middleware())
 
-// const products = getProducts()
-
-interface ProductArray   {
-  command: string,
-  description: string,
+//--------------------------------------------------------------------------------------------------------------------
+interface ProductObj {
+  command: string
+  description: string
   priceCents: string
 }
 
-const productsToArray =  async (): ProductArray[] => {
-  const productQuery =  getProducts()
-  const res = productQuery.then(
-      productObj => productObj.rows.map(({name, description, priceCents}) => {
-        return {
-          'command': name,
-          description,
-          priceCents
-        }
+const productsToArray = async (): Promise<ProductObj[]> => {
+  const productQuery = getProducts()
+  const res: ProductObj[] = (await productQuery).rows.map(
+    ({ name, description, price_cents }) => {
+      return {
+        command: name,
+        description,
+        priceCents: price_cents,
       }
-    )
+    }
   )
   return res
 }
 
-const test = productsToArray()
+const products = await productsToArray()
+
+bot.command('delete_product', (ctx) => {
+  const priceList = products.map(({ description, priceCents }) => {
+    return `\n${description} - ${Number(priceCents) / -100}€`
+  })
+  const keyboard_array = formatButtonArray(
+    products.map(({ command, description }) => {
+      return Markup.button.callback(
+        description,
+        `delete_productname_${command}`
+      )
+    })
+  )
+
+  return ctx.reply(`Vilken produkt vill du ta bort ${priceList}`, {
+    ...Markup.inlineKeyboard(keyboard_array),
+  })
+})
+
+bot.action(/delete_productname_(.*)/, async (ctx) => {
+  const productName = ctx.match[1]
+  try {
+    await deleteProduct(productName)
+    return ctx.editMessageText(`Raderingen av product ${productName} lyckades!`)
+  } catch (e) {
+    console.log('Failed to remove product:', e)
+    return ctx.editMessageText(
+      `Raderingen av product ${productName} misslyckades! Klaga till nån!`
+    )
+  }
+})
+
+bot.command('add_product', async (ctx) => {await ctx.scene.enter('add_product_scene')})
+//--------------------------------------------------------------------------------------------------------------------
+
+console.log(products)
 
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
@@ -127,7 +137,6 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
     }
   }
 }
-
 
 products.forEach(({ command, description, priceCents }) => {
   bot.command(command, addPurchaseOption(description, priceCents))
@@ -170,8 +179,9 @@ const addPurchaseOptionFromInline = (
   }
 }
 
-bot.command('meny', (ctx) => {
-  const priceList = products.map(({ command, description, priceCents }) => {
+bot.command('meny', async (ctx) => {
+  const products = await productsToArray()
+  const priceList = products.map(({ description, priceCents }) => {
     return `\n${description} - ${Number(priceCents) / -100}€`
   })
   const keyboard_array = formatButtonArray(

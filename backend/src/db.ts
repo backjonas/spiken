@@ -19,12 +19,22 @@ await pool.query(
   `
 )
 
+// await pool.query(`DROP TABLE products`)
+
 await pool.query(
   `CREATE TABLE IF NOT EXISTS products(
     id SERIAL,
     name TEXT,
     description TEXT,
-    amount_cents INTEGER
+    price_cents INTEGER
   );
   `
 )
+
+// await pool.query(
+//   `INSERT INTO products 
+//     (name, description, price_cents)
+//   VALUES(
+//     'patron', 'Patron', -1200);
+//   `
+// )
