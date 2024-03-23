@@ -9,18 +9,17 @@ import { Message, Update } from '@telegraf/types'
 import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
 import { Product, deleteProduct, getProducts } from './products.js'
-import { MyContext, stage } from './product_handling.js'
+import { ContextWithScenes, stage } from './product_scenes.js'
 
 /*
 Toiveiden tynnyri:
-- Admin interface, lägg till/ta bort produkter, lägg till/ta bort saldo
+- Admin interface, lägg till/ta bort saldo
 - Skamlistan, posta alla med negativt i chatten med en @
 - En 'vapaa myynti' command med description och summa
 - "Undo" funktionalitet
-- Transaktionshistorik för användare
 */
 
-const bot = new Telegraf<MyContext>(config.botToken)
+const bot = new Telegraf<ContextWithScenes>(config.botToken)
 
 const info_message = `Hej, välkommen till STF spik bot!
 Här kan du köra köp och kolla ditt saldo.
@@ -63,46 +62,59 @@ export const productsToArray = async (): Promise<Product[]> => {
       }
     }
   )
-  console.log(res)
   return res
 }
 
 const products = await productsToArray()
 
-bot.command('delete_product', (ctx) => {
+bot.command('delete_product', async (ctx) => {
+  const products = await productsToArray()
   const priceList = products.map(({ description, price_cents }) => {
     return `\n${description} - ${Number(price_cents) / -100}€`
   })
   const keyboard_array = formatButtonArray(
-    products.map(({ name, description }) => {
+    products.map(({ id, description }) => {
       return Markup.button.callback(
         description,
-        `delete_productname_${name}`
+        `delete_productname_${id}_${description}`
       )
     })
   )
 
-  return ctx.reply(`Vilken produkt vill du ta bort ${priceList}`, {
+  return ctx.reply(`Vilken produkt vill du ta bort?${priceList}`, {
     ...Markup.inlineKeyboard(keyboard_array),
   })
 })
 
-bot.action(/delete_productname_(.*)/, async (ctx) => {
-  const productName = ctx.match[1]
+bot.action(/delete_productname_(\d*)_(.*)/, async (ctx) => {
+  const productId = Number(ctx.match[1])
+  const productDescription = ctx.match[2]
   try {
-    await deleteProduct(productName)
-    return ctx.editMessageText(`Raderingen av product ${productName} lyckades!`)
-  } catch (e) {
-    console.log('Failed to remove product:', e)
+    await deleteProduct(productId)
+    console.log(
+      `Removed product with id ${productId} and description "${productDescription}"`
+    )
     return ctx.editMessageText(
-      `Raderingen av product ${productName} misslyckades! Klaga till nån!`
+      `Raderingen av product "${productDescription}" lyckades!`
+    )
+  } catch (e) {
+    console.log(
+      `Failed to remove product with id ${productId} and description "${productDescription}"`,
+      e
+    )
+    return ctx.editMessageText(
+      `Raderingen av product ${productId} misslyckades! Klaga till nån!`
     )
   }
 })
 
-bot.command('add_product', async (ctx) => {await ctx.scene.enter('add_product_scene')})
+bot.command('add_product', async (ctx) => {
+  await ctx.scene.enter('add_product_scene')
+})
 
-bot.command('edit_product', async (ctx) => {await ctx.scene.enter('edit_product_scene')})
+bot.command('edit_product', async (ctx) => {
+  await ctx.scene.enter('edit_product_scene')
+})
 //--------------------------------------------------------------------------------------------------------------------
 
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {

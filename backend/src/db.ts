@@ -32,7 +32,7 @@ await pool.query(
 )
 
 // await pool.query(
-//   `INSERT INTO products 
+//   `INSERT INTO products
 //     (name, description, price_cents)
 //   VALUES(
 //     'patron', 'Patron', -1200);
