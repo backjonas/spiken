@@ -8,7 +8,7 @@ export interface ProductIn {
 }
 
 export interface Product {
-  productId: number
+  id: number
   name: string
   description: string
   price_cents: string
@@ -40,22 +40,27 @@ export const deleteProduct = async (productName: string) => {
 }
 
 export const editProduct = async ({
-  productId,
+  id,
   name,
   description,
   price_cents: amountCents,
 }: Product) => {
   await pool.query(
-    `UPDATE table_name
+    `UPDATE products
     SET name = $2,
         description = $3,
-        amount_cents = $4
+        price_cents = $4
     WHERE id = $1;`,
-    [productId, name, description, amountCents]
+    [id, name, description, amountCents]
   )
 }
 
 export const getProducts = async (): Promise<QueryResult<Product>> => {
   const res = await pool.query(`SELECT * FROM products`)
+  return res
+}
+
+export const getProductById = async (id: number): Promise<QueryResult<Product>> => {
+  const res = await pool.query(`SELECT * FROM products WHERE id = $1;`, [id])
   return res
 }

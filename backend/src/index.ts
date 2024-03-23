@@ -8,7 +8,7 @@ import {
 import { Message, Update } from '@telegraf/types'
 import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
-import { deleteProduct, getProducts } from './products.js'
+import { Product, deleteProduct, getProducts } from './products.js'
 import { MyContext, stage } from './product_handling.js'
 
 /*
@@ -50,37 +50,34 @@ bot.use(session())
 bot.use(stage.middleware())
 
 //--------------------------------------------------------------------------------------------------------------------
-interface ProductObj {
-  command: string
-  description: string
-  priceCents: string
-}
 
-const productsToArray = async (): Promise<ProductObj[]> => {
+export const productsToArray = async (): Promise<Product[]> => {
   const productQuery = getProducts()
-  const res: ProductObj[] = (await productQuery).rows.map(
-    ({ name, description, price_cents }) => {
+  const res: Product[] = (await productQuery).rows.map(
+    ({ id, name, description, price_cents }) => {
       return {
-        command: name,
+        id,
+        name,
         description,
-        priceCents: price_cents,
+        price_cents,
       }
     }
   )
+  console.log(res)
   return res
 }
 
 const products = await productsToArray()
 
 bot.command('delete_product', (ctx) => {
-  const priceList = products.map(({ description, priceCents }) => {
-    return `\n${description} - ${Number(priceCents) / -100}€`
+  const priceList = products.map(({ description, price_cents }) => {
+    return `\n${description} - ${Number(price_cents) / -100}€`
   })
   const keyboard_array = formatButtonArray(
-    products.map(({ command, description }) => {
+    products.map(({ name, description }) => {
       return Markup.button.callback(
         description,
-        `delete_productname_${command}`
+        `delete_productname_${name}`
       )
     })
   )
@@ -104,9 +101,9 @@ bot.action(/delete_productname_(.*)/, async (ctx) => {
 })
 
 bot.command('add_product', async (ctx) => {await ctx.scene.enter('add_product_scene')})
-//--------------------------------------------------------------------------------------------------------------------
 
-console.log(products)
+bot.command('edit_product', async (ctx) => {await ctx.scene.enter('edit_product_scene')})
+//--------------------------------------------------------------------------------------------------------------------
 
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
@@ -138,8 +135,8 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   }
 }
 
-products.forEach(({ command, description, priceCents }) => {
-  bot.command(command, addPurchaseOption(description, priceCents))
+products.forEach(({ name, description, price_cents }) => {
+  bot.command(name, addPurchaseOption(description, price_cents))
 })
 
 const addPurchaseOptionFromInline = (
@@ -181,12 +178,12 @@ const addPurchaseOptionFromInline = (
 
 bot.command('meny', async (ctx) => {
   const products = await productsToArray()
-  const priceList = products.map(({ description, priceCents }) => {
-    return `\n${description} - ${Number(priceCents) / -100}€`
+  const priceList = products.map(({ description, price_cents }) => {
+    return `\n${description} - ${Number(price_cents) / -100}€`
   })
   const keyboard_array = formatButtonArray(
-    products.map(({ command, description }) => {
-      return Markup.button.callback(description, command)
+    products.map(({ name, description }) => {
+      return Markup.button.callback(description, name)
     })
   )
 
@@ -195,8 +192,8 @@ bot.command('meny', async (ctx) => {
   })
 })
 
-products.forEach(({ command, description, priceCents }) => {
-  bot.action(command, addPurchaseOptionFromInline(description, priceCents))
+products.forEach(({ name, description, price_cents }) => {
+  bot.action(name, addPurchaseOptionFromInline(description, price_cents))
 })
 
 bot.command('saldo', async (ctx) => {
@@ -239,10 +236,10 @@ bot.command('historia', async (ctx) => {
 })
 
 bot.telegram.setMyCommands([
-  ...products.map(({ command, description, priceCents }) => ({
-    command,
+  ...products.map(({ name, description, price_cents }) => ({
+    command: name,
     description: `Köp 1 st ${description} för ${(
-      Number(priceCents) / -100
+      Number(price_cents) / -100
     ).toFixed(2)}€`,
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
@@ -290,7 +287,7 @@ const formatName = ({
  *
  * n defaults to 3
  */
-function formatButtonArray(array: any[], n: number = 3): any[][] {
+export function formatButtonArray<T>(array: T[], n: number = 3): T[][] {
   const result = []
   for (let i = 0; i < array.length; i += n) {
     result.push(array.slice(i, i + n))
