@@ -1,22 +1,84 @@
-import { Markup, Scenes } from 'telegraf'
+import { Composer, Markup, Scenes } from 'telegraf'
 import {
   Product,
   ProductIn,
   addProduct,
+  deleteProduct,
   editProduct,
   getProductById,
+  getProducts,
 } from './products.js'
-import { formatButtonArray, productsToArray } from './index.js'
+import { formatButtonArray } from './index.js'
 
 interface MyWizardSession extends Scenes.WizardSessionData {
-  // available in scene context under ctx.scene.session.product
+  // available in scene context under ctx.scene.session
   product_new: ProductIn
   product_edit: Product
 }
 
 export type ContextWithScenes = Scenes.WizardContext<MyWizardSession>
 
-export const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
+const bot = new Composer<ContextWithScenes>()
+
+export const productsToArray = async (): Promise<Product[]> => {
+  const productQuery = getProducts()
+  const res: Product[] = (await productQuery).rows.map(
+    ({ id, name, description, price_cents }) => {
+      return {
+        id,
+        name,
+        description,
+        price_cents,
+      }
+    }
+  )
+  return res
+}
+
+
+const deleteCommand = bot.command('delete_product', async (ctx) => {
+  const products = await productsToArray()
+  const priceList = products.map(({ description, price_cents }) => {
+    return `\n${description} - ${Number(price_cents) / -100}€`
+  })
+  const keyboard_array = formatButtonArray(
+    products.map(({ id, description }) => {
+      return Markup.button.callback(
+        description,
+        `delete_productname_${id}_${description}`
+      )
+    })
+  )
+
+  return ctx.reply(`Vilken produkt vill du ta bort?${priceList}`, {
+    ...Markup.inlineKeyboard(keyboard_array),
+  })
+})
+
+const deleteCommandFollowUp =  bot.action(/delete_productname_(\d*)_(.*)/, async (ctx) => {
+  const productId = Number(ctx.match[1])
+  const productDescription = ctx.match[2]
+  try {
+    await deleteProduct(productId)
+    console.log(
+      `Removed product with id ${productId} and description "${productDescription}"`
+    )
+    return ctx.editMessageText(
+      `Raderingen av product "${productDescription}" lyckades!`
+    )
+  } catch (e) {
+    console.log(
+      `Failed to remove product with id ${productId} and description "${productDescription}"`,
+      e
+    )
+    return ctx.editMessageText(
+      `Raderingen av product ${productId} misslyckades! Klaga till nån!`
+    )
+  }
+})
+
+
+const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'add_product_scene',
   async (ctx) => {
     ctx.reply('Produkt namn? (Blir automatisk små bokstäver)')
@@ -88,7 +150,7 @@ const skipButtonKeyboard = Markup.inlineKeyboard([
   Markup.button.callback('Skip (värdet uppdateras inte)', 'skip'),
 ])
 
-export const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
+const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'edit_product_scene',
   async (ctx: ContextWithScenes) => {
     const products = await productsToArray()
@@ -218,4 +280,17 @@ export const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   }
 )
 
-export const stage = new Scenes.Stage([addProductScene, editProductScene])
+
+
+const stage = new Scenes.Stage([addProductScene, editProductScene])
+bot.use(stage.middleware())
+
+const addCommand = bot.command('add_product', async (ctx) => {
+  await ctx.scene.enter('add_product_scene')
+})
+
+const editCommand = bot.command('edit_product', async (ctx) => {
+  await ctx.scene.enter('edit_product_scene')
+})
+
+export default Composer.compose([addCommand, editCommand, deleteCommand, deleteCommandFollowUp])
