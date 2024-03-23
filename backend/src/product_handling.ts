@@ -35,7 +35,6 @@ export const productsToArray = async (): Promise<Product[]> => {
   return res
 }
 
-
 const deleteCommand = bot.command('delete_product', async (ctx) => {
   const products = await productsToArray()
   const priceList = products.map(({ description, price_cents }) => {
@@ -55,28 +54,30 @@ const deleteCommand = bot.command('delete_product', async (ctx) => {
   })
 })
 
-const deleteCommandFollowUp =  bot.action(/delete_productname_(\d*)_(.*)/, async (ctx) => {
-  const productId = Number(ctx.match[1])
-  const productDescription = ctx.match[2]
-  try {
-    await deleteProduct(productId)
-    console.log(
-      `Removed product with id ${productId} and description "${productDescription}"`
-    )
-    return ctx.editMessageText(
-      `Raderingen av product "${productDescription}" lyckades!`
-    )
-  } catch (e) {
-    console.log(
-      `Failed to remove product with id ${productId} and description "${productDescription}"`,
-      e
-    )
-    return ctx.editMessageText(
-      `Raderingen av product ${productId} misslyckades! Klaga till nån!`
-    )
+const deleteCommandFollowUp = bot.action(
+  /delete_productname_(\d*)_(.*)/,
+  async (ctx) => {
+    const productId = Number(ctx.match[1])
+    const productDescription = ctx.match[2]
+    try {
+      await deleteProduct(productId)
+      console.log(
+        `Removed product with id ${productId} and description "${productDescription}"`
+      )
+      return ctx.editMessageText(
+        `Raderingen av product "${productDescription}" lyckades!`
+      )
+    } catch (e) {
+      console.log(
+        `Failed to remove product with id ${productId} and description "${productDescription}"`,
+        e
+      )
+      return ctx.editMessageText(
+        `Raderingen av product ${productId} misslyckades! Klaga till nån!`
+      )
+    }
   }
-})
-
+)
 
 const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'add_product_scene',
@@ -280,8 +281,6 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   }
 )
 
-
-
 const stage = new Scenes.Stage([addProductScene, editProductScene])
 bot.use(stage.middleware())
 
@@ -293,4 +292,9 @@ const editCommand = bot.command('edit_product', async (ctx) => {
   await ctx.scene.enter('edit_product_scene')
 })
 
-export default Composer.compose([addCommand, editCommand, deleteCommand, deleteCommandFollowUp])
+export default Composer.compose([
+  addCommand,
+  editCommand,
+  deleteCommand,
+  deleteCommandFollowUp,
+])

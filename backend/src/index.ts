@@ -9,7 +9,7 @@ import { Message, Update } from '@telegraf/types'
 import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
 import { Product, getProducts } from './products.js'
-import { ContextWithScenes, productsToArray} from './product_handling.js'
+import { ContextWithScenes, productsToArray } from './product_handling.js'
 import productCommands from './product_handling.js'
 
 /*
