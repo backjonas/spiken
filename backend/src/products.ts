@@ -18,7 +18,7 @@ export const addProduct = async ({
   name,
   description,
   priceCents: amountCents,
-}: ProductIn) => {
+}: ProductIn): Promise<void> => {
   await pool.query(
     `INSERT INTO products(
     name,
@@ -31,7 +31,7 @@ export const addProduct = async ({
   )
 }
 
-export const deleteProduct = async (id: number) => {
+export const deleteProduct = async (id: number): Promise<void> => {
   await pool.query(
     `DELETE FROM products
     where id = $1`,
@@ -44,7 +44,7 @@ export const editProduct = async ({
   name,
   description,
   price_cents: amountCents,
-}: Product) => {
+}: Product): Promise<void> => {
   await pool.query(
     `UPDATE products
     SET name = $2,
