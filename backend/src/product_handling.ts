@@ -8,12 +8,12 @@ import {
   getProductById,
   getProducts,
 } from './products.js'
-import { formatButtonArray } from './index.js'
+import { formatButtonArray } from './utils.js'
 
 interface MyWizardSession extends Scenes.WizardSessionData {
   // available in scene context under ctx.scene.session
-  product_new: ProductIn
-  product_edit: Product
+  newProduct: ProductIn
+  product: Product
 }
 
 export type ContextWithScenes = Scenes.WizardContext<MyWizardSession>
@@ -21,8 +21,8 @@ export type ContextWithScenes = Scenes.WizardContext<MyWizardSession>
 const bot = new Composer<ContextWithScenes>()
 
 export const productsToArray = async (): Promise<Product[]> => {
-  const productQuery = getProducts()
-  const res: Product[] = (await productQuery).rows.map(
+  const productQuery = await getProducts()
+  return productQuery.rows.map(
     ({ id, name, description, price_cents }) => {
       return {
         id,
@@ -31,8 +31,7 @@ export const productsToArray = async (): Promise<Product[]> => {
         price_cents,
       }
     }
-  )
-  return res
+  ) as Product[]
 }
 
 const deleteCommand = bot.command('delete_product', async (ctx) => {
@@ -60,7 +59,10 @@ const deleteCommandFollowUp = bot.action(
     const productId = Number(ctx.match[1])
     const productDescription = ctx.match[2]
     try {
-      await deleteProduct(productId)
+      const deletedRowsCount = (await deleteProduct(productId))['rowCount']
+      if(deletedRowsCount > 1){
+        console.log(`${deletedRowsCount} rows were deleted, only 1 should have been.`)
+      }
       console.log(
         `Removed product with id ${productId} and description "${productDescription}"`
       )
@@ -83,7 +85,7 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'add_product_scene',
   async (ctx) => {
     ctx.reply('Produkt namn? (Blir automatisk små bokstäver)')
-    ctx.scene.session.product_new = {
+    ctx.scene.session.newProduct = {
       name: '',
       description: '',
       priceCents: '',
@@ -92,7 +94,7 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.message && 'text' in ctx.message) {
-      ctx.scene.session.product_new.name = ctx.message.text.toLowerCase()
+      ctx.scene.session.newProduct.name = ctx.message.text.toLowerCase()
       ctx.reply('Produkt beskrivning?')
       return ctx.wizard.next()
     } else {
@@ -101,7 +103,7 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.message && 'text' in ctx.message) {
-      ctx.scene.session.product_new.description = ctx.message.text
+      ctx.scene.session.newProduct.description = ctx.message.text
       ctx.reply('Produktens pris (i positiva cent)?')
       return ctx.wizard.next()
     } else {
@@ -115,28 +117,28 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
           'Priset måste vara positivt, det läggs sedan in i databasen som negativt!'
         )
       }
-      ctx.scene.session.product_new.priceCents = `-` + ctx.message.text
-      console.log(ctx.scene.session.product_new)
+      ctx.scene.session.newProduct.priceCents = `-` + ctx.message.text
+      console.log(ctx.scene.session.newProduct)
       const product = {
-        name: ctx.scene.session.product_new.name,
-        description: ctx.scene.session.product_new.description,
-        priceCents: ctx.scene.session.product_new.priceCents,
+        name: ctx.scene.session.newProduct.name,
+        description: ctx.scene.session.newProduct.description,
+        priceCents: ctx.scene.session.newProduct.priceCents,
       }
       try {
         await addProduct(product)
         console.log(
           'The following product has been added:\n' +
-            `name:"${ctx.scene.session.product_new.name}"\n` +
-            `description:"${ctx.scene.session.product_new.description}"\n` +
-            `priceCents:"${ctx.scene.session.product_new.priceCents}"\n`
+            `name:"${ctx.scene.session.newProduct.name}"\n` +
+            `description:"${ctx.scene.session.newProduct.description}"\n` +
+            `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`
         )
         ctx.reply('Produkten har lagts till!')
       } catch (e) {
         console.log(
           'The following product could not be added:\n' +
-            `name:"${ctx.scene.session.product_new.name}"\n` +
-            `description:"${ctx.scene.session.product_new.description}"\n` +
-            `priceCents:"${ctx.scene.session.product_new.priceCents}"\n`,
+            `name:"${ctx.scene.session.newProduct.name}"\n` +
+            `description:"${ctx.scene.session.newProduct.description}"\n` +
+            `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`,
           e
         )
       }
@@ -172,22 +174,22 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       const productId = Number(ctx.callbackQuery.data)
-      ctx.scene.session.product_edit = (await getProductById(productId)).rows[0]
+      ctx.scene.session.product = (await getProductById(productId)).rows[0]
       ctx.reply(
-        `Produktens nya namn? Nu heter produkten "${ctx.scene.session.product_edit.name}"`,
+        `Produktens nya namn? Nu heter produkten "${ctx.scene.session.product.name}"`,
         {
           ...skipButtonKeyboard,
         }
       )
       return ctx.wizard.next()
     }
-    ctx.reply('Väl en produkt från knapparna!')
+    ctx.reply('Välj en produkt från knapparna!')
   },
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'skip') {
         ctx.reply(
-          `Produktens nya beskrivning? Nu har den beskrviningen "${ctx.scene.session.product_edit.description}"`,
+          `Produktens nya beskrivning? Nu har den beskrviningen "${ctx.scene.session.product.description}"`,
           {
             ...skipButtonKeyboard,
           }
@@ -196,9 +198,9 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
       }
     }
     if (ctx.message && 'text' in ctx.message) {
-      ctx.scene.session.product_edit.name = ctx.message.text
+      ctx.scene.session.product.name = ctx.message.text
       ctx.reply(
-        `Produktens nya beskrivning? Nu har den beskrviningen "${ctx.scene.session.product_edit.description}"`,
+        `Produktens nya beskrivning? Nu har den beskrviningen "${ctx.scene.session.product.description}"`,
         {
           ...skipButtonKeyboard,
         }
@@ -213,7 +215,7 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
       if (ctx.callbackQuery.data === 'skip') {
         ctx.reply(
           `Produktens nya pris (i positiva cent)? Nu är det ${-ctx.scene.session
-            .product_edit.price_cents}`,
+            .product.price_cents}`,
           {
             ...skipButtonKeyboard,
           }
@@ -222,10 +224,10 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
       }
     }
     if (ctx.message && 'text' in ctx.message) {
-      ctx.scene.session.product_edit.description = ctx.message.text
+      ctx.scene.session.product.description = ctx.message.text
       ctx.reply(
         `Produktens nya pris (i positiva cent)? Nu är det ${-ctx.scene.session
-          .product_edit.price_cents}`,
+          .product.price_cents}`,
         {
           ...skipButtonKeyboard,
         }
@@ -239,15 +241,15 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'skip') {
         try {
-          await editProduct(ctx.scene.session.product_edit)
+          await editProduct(ctx.scene.session.product)
           console.log(
-            `Product "${ctx.scene.session.product_edit.name}" with id ${ctx.scene.session.product_edit.id} has been updated!`
+            `Product "${ctx.scene.session.product.name}" with id ${ctx.scene.session.product.id} has been updated!`
           )
           ctx.reply('Produkten har uppdaterats!')
         } catch (e) {
           ctx.reply('Produkten kunde inte uppdaterats!')
           console.log(
-            `Product "${ctx.scene.session.product_edit.name}" with id ${ctx.scene.session.product_edit.id} could not be edited:`,
+            `Product "${ctx.scene.session.product.name}" with id ${ctx.scene.session.product.id} could not be edited:`,
             e
           )
         }
@@ -260,17 +262,17 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
           'Priset måste vara positivt, det läggs sedan in i databasen som negativt!'
         )
       }
-      ctx.scene.session.product_edit.price_cents = `-` + ctx.message.text
+      ctx.scene.session.product.price_cents = `-` + ctx.message.text
       try {
-        await editProduct(ctx.scene.session.product_edit)
+        await editProduct(ctx.scene.session.product)
         console.log(
-          `Product "${ctx.scene.session.product_edit.name}" with id ${ctx.scene.session.product_edit.id} has been updated!`
+          `Product "${ctx.scene.session.product.name}" with id ${ctx.scene.session.product.id} has been updated!`
         )
         ctx.reply('Produkten har uppdaterats!')
       } catch (e) {
         ctx.reply('Produkten kunde inte uppdaterats!')
         console.log(
-          `Product "${ctx.scene.session.product_edit.name}" with id ${ctx.scene.session.product_edit.id} could not be edited:`,
+          `Product "${ctx.scene.session.product.name}" with id ${ctx.scene.session.product.id} could not be edited:`,
           e
         )
       }

@@ -31,8 +31,8 @@ export const addProduct = async ({
   )
 }
 
-export const deleteProduct = async (id: number): Promise<void> => {
-  await pool.query(
+export const deleteProduct = async (id: number): Promise<QueryResult> => {
+  return await pool.query(
     `DELETE FROM products
     where id = $1`,
     [id]
@@ -56,13 +56,11 @@ export const editProduct = async ({
 }
 
 export const getProducts = async (): Promise<QueryResult<Product>> => {
-  const res = await pool.query(`SELECT * FROM products`)
-  return res
+  return await pool.query(`SELECT * FROM products`)
 }
 
 export const getProductById = async (
   id: number
 ): Promise<QueryResult<Product>> => {
-  const res = await pool.query(`SELECT * FROM products WHERE id = $1;`, [id])
-  return res
+  return await pool.query(`SELECT * FROM products WHERE id = $1;`, [id])
 }

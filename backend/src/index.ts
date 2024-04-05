@@ -6,10 +6,10 @@ import {
   purchaseItemForMember,
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
-import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
 import { ContextWithScenes, productsToArray } from './product_handling.js'
 import productCommands from './product_handling.js'
+import { centsToEuroString, formatButtonArray, formatDateToString, formatName } from './utils.js'
 
 /*
 Toiveiden tynnyri:
@@ -46,6 +46,10 @@ bot.use(async (ctx, next) => {
 })
 
 bot.use(session())
+// addAdminCommands(bot)
+
+// bot.use(admin middleware)
+// bot.command...
 bot.use(productCommands)
 
 const products = await productsToArray()
@@ -211,31 +215,4 @@ export const isChatMember = async (userId: number, chatId: number) => {
     console.log('Error checking group membership:', e)
     return false
   }
-}
-
-const formatName = ({
-  first_name,
-  last_name,
-  username,
-}: {
-  first_name: string
-  last_name?: string
-  username?: string
-}) => {
-  const formattedLastName = last_name ? ` ${last_name}` : ``
-  const formattedUserName = username ? ` (${username})` : ``
-  return `${first_name}${formattedLastName}${formattedUserName}`
-}
-
-/**
- * Splits a array into an array of arrays with max n elements per subarray
- *
- * n defaults to 3
- */
-export function formatButtonArray<T>(array: T[], n: number = 3): T[][] {
-  const result = []
-  for (let i = 0; i < array.length; i += n) {
-    result.push(array.slice(i, i + n))
-  }
-  return result
 }

@@ -33,3 +33,28 @@ export const centsToEuroString = (amountInCents: number): string => {
   }
   return euro + '€'
 }
+export const formatName = ({
+  first_name,
+  last_name,
+  username,
+}: {
+  first_name: string
+  last_name?: string
+  username?: string
+}) => {
+  const formattedLastName = last_name ? ` ${last_name}` : ``
+  const formattedUserName = username ? ` (${username})` : ``
+  return `${first_name}${formattedLastName}${formattedUserName}`
+}
+/**
+ * Splits a array into an array of arrays with max n elements per subarray
+ *
+ * n defaults to 3
+ */
+export function formatButtonArray<T>(array: T[], n: number = 3): T[][] {
+  const result = []
+  for (let i = 0; i < array.length; i += n) {
+    result.push(array.slice(i, i + n))
+  }
+  return result
+}
