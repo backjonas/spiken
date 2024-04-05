@@ -23,16 +23,14 @@ const bot = new Composer<ContextWithScenes>()
 
 export const productsToArray = async (): Promise<Product[]> => {
   const productQuery = await getProducts()
-  return productQuery.rows.map(
-    ({ id, name, description, price_cents }) => {
-      return {
-        id,
-        name,
-        description,
-        price_cents,
-      }
+  return productQuery.rows.map(({ id, name, description, price_cents }) => {
+    return {
+      id,
+      name,
+      description,
+      price_cents,
     }
-  ) as Product[]
+  }) as Product[]
 }
 //endregion
 
@@ -63,8 +61,10 @@ const deleteCommandFollowUp = bot.action(
     const productDescription = ctx.match[2]
     try {
       const deletedRowsCount = (await deleteProduct(productId))['rowCount']
-      if(deletedRowsCount > 1){
-        console.log(`${deletedRowsCount} rows were deleted, only 1 should have been.`)
+      if (deletedRowsCount > 1) {
+        console.log(
+          `${deletedRowsCount} rows were deleted, only 1 should have been.`
+        )
       }
       console.log(
         `Removed product with id ${productId} and description "${productDescription}"`
