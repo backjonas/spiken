@@ -1,3 +1,4 @@
+//#region Imports & Init
 import { Context, Markup, Telegraf, session } from 'telegraf'
 import { config } from './config.js'
 import {
@@ -51,9 +52,13 @@ bot.use(session())
 // bot.use(admin middleware)
 // bot.command...
 bot.use(productCommands)
+//endregion
 
+//#region Products
 const products = await productsToArray()
+//endregion
 
+//#region Buying from commands
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
     ctx: Context<{
@@ -87,6 +92,10 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
 products.forEach(({ name, description, price_cents }) => {
   bot.command(name, addPurchaseOption(description, price_cents))
 })
+
+//endregion
+
+//#region Buying inline
 
 const addPurchaseOptionFromInline = (
   itemDescription: string,
@@ -145,18 +154,9 @@ products.forEach(({ name, description, price_cents }) => {
   bot.action(name, addPurchaseOptionFromInline(description, price_cents))
 })
 
-bot.command('saldo', async (ctx) => {
-  const balance = await getBalanceForMember(ctx.from.id)
-  return ctx.reply(`Ditt saldo är ${balance}€`)
-})
+//endregion
 
-bot.command('info', async (ctx) => {
-  return ctx.reply(info_message)
-})
-
-bot.command('start', async (ctx) => {
-  return ctx.reply(info_message)
-})
+//#region History
 
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id)
@@ -184,6 +184,23 @@ bot.command('historia', async (ctx) => {
   return ctx.reply(res, { parse_mode: 'Markdown' })
 })
 
+//endregion
+
+//#region Misc commands
+
+bot.command('saldo', async (ctx) => {
+  const balance = await getBalanceForMember(ctx.from.id)
+  return ctx.reply(`Ditt saldo är ${balance}€`)
+})
+
+bot.command('info', async (ctx) => {
+  return ctx.reply(info_message)
+})
+
+bot.command('start', async (ctx) => {
+  return ctx.reply(info_message)
+})
+
 bot.telegram.setMyCommands([
   ...products.map(({ name, description, price_cents }) => ({
     command: name,
@@ -199,6 +216,10 @@ bot.telegram.setMyCommands([
 
 // Admin middleware is used for all commands added after this line!
 bot.use(adminCommands)
+
+//endregion
+
+//#region Launch bot & misc
 
 bot.launch()
 
@@ -216,3 +237,4 @@ export const isChatMember = async (userId: number, chatId: number) => {
     return false
   }
 }
+//endregion

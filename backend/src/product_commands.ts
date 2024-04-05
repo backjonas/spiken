@@ -1,3 +1,4 @@
+//#region Imports & Init
 import { Composer, Markup, Scenes } from 'telegraf'
 import {
   Product,
@@ -33,7 +34,9 @@ export const productsToArray = async (): Promise<Product[]> => {
     }
   ) as Product[]
 }
+//endregion
 
+//#region Delete
 const deleteCommand = bot.command('delete_product', async (ctx) => {
   const products = await productsToArray()
   const priceList = products.map(({ description, price_cents }) => {
@@ -80,6 +83,9 @@ const deleteCommandFollowUp = bot.action(
     }
   }
 )
+//#endregion
+
+//#region Add
 
 const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'add_product_scene',
@@ -148,6 +154,10 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
     }
   }
 )
+
+//#endregion
+
+//#region Edit
 
 const skipButtonKeyboard = Markup.inlineKeyboard([
   Markup.button.callback('Skip (värdet uppdateras inte)', 'skip'),
@@ -283,6 +293,10 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   }
 )
 
+//#endregion
+
+//#region Misc & Export
+
 const stage = new Scenes.Stage([addProductScene, editProductScene])
 bot.use(stage.middleware())
 
@@ -300,3 +314,5 @@ export default Composer.compose([
   deleteCommand,
   deleteCommandFollowUp,
 ])
+
+//#endregion
