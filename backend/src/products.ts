@@ -1,4 +1,4 @@
-import { pool } from './db.js'
+import { pool } from './db_setup.js'
 import { QueryResult } from 'pg'
 
 export interface ProductIn {

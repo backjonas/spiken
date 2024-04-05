@@ -7,8 +7,8 @@ import {
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
-import { ContextWithScenes, productsToArray } from './product_handling.js'
-import productCommands from './product_handling.js'
+import { ContextWithScenes, productsToArray } from './product_commands.js'
+import productCommands from './product_commands.js'
 import { centsToEuroString, formatButtonArray, formatDateToString, formatName } from './utils.js'
 
 /*
