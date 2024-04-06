@@ -1,4 +1,5 @@
-import { Context, Markup, Telegraf } from 'telegraf'
+//#region Imports & Init
+import { Context, Markup, Telegraf, session } from 'telegraf'
 import { config } from './config.js'
 import {
   exportTransactionsForOneUser,
@@ -6,19 +7,25 @@ import {
   purchaseItemForMember,
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
-import { formatDateToString, centsToEuroString } from './utils.js'
 import adminCommands from './admin/index.js'
+import { ContextWithScenes, productsToArray } from './admin/product.js'
+import productCommands from './admin/product.js'
+import {
+  centsToEuroString,
+  formatButtonArray,
+  formatDateToString,
+  formatName,
+} from './utils.js'
 
 /*
 Toiveiden tynnyri:
-- Admin interface, lägg till/ta bort produkter, lägg till/ta bort saldo
+- Admin interface, lägg till/ta bort saldo
 - Skamlistan, posta alla med negativt i chatten med en @
 - En 'vapaa myynti' command med description och summa
 - "Undo" funktionalitet
-- Transaktionshistorik för användare
 */
 
-const bot = new Telegraf(config.botToken)
+const bot = new Telegraf<ContextWithScenes>(config.botToken)
 
 const info_message = `Hej, välkommen till STF spik bot!
 Här kan du köra köp och kolla ditt saldo.
@@ -44,34 +51,19 @@ bot.use(async (ctx, next) => {
   await next()
 })
 
-const products = [
-  {
-    command: 'patron',
-    description: 'Patron',
-    priceCents: '-1200',
-  },
-  {
-    command: 'kalja',
-    description: 'Öl',
-    priceCents: '-150',
-  },
-  {
-    command: 'cigarr',
-    description: 'Cigarr',
-    priceCents: '-600',
-  },
-  {
-    command: 'cognac',
-    description: 'Cognac',
-    priceCents: '-200',
-  },
-  {
-    command: 'snaps',
-    description: 'Snaps',
-    priceCents: '-200',
-  },
-]
+bot.use(session())
+// addAdminCommands(bot)
 
+// bot.use(admin middleware)
+// bot.command...
+bot.use(productCommands)
+//endregion
+
+//#region Products
+const products = await productsToArray()
+//endregion
+
+//#region Buying from commands
 const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   return async (
     ctx: Context<{
@@ -102,9 +94,13 @@ const addPurchaseOption = (itemDescription: string, itemPriceCents: string) => {
   }
 }
 
-products.forEach(({ command, description, priceCents }) => {
-  bot.command(command, addPurchaseOption(description, priceCents))
+products.forEach(({ name, description, price_cents }) => {
+  bot.command(name, addPurchaseOption(description, price_cents))
 })
+
+//endregion
+
+//#region Buying inline
 
 const addPurchaseOptionFromInline = (
   itemDescription: string,
@@ -143,13 +139,14 @@ const addPurchaseOptionFromInline = (
   }
 }
 
-bot.command('meny', (ctx) => {
-  const priceList = products.map(({ command, description, priceCents }) => {
-    return `\n${description} - ${Number(priceCents) / -100}€`
+bot.command('meny', async (ctx) => {
+  const products = await productsToArray()
+  const priceList = products.map(({ description, price_cents }) => {
+    return `\n${description} - ${Number(price_cents) / -100}€`
   })
   const keyboard_array = formatButtonArray(
-    products.map(({ command, description }) => {
-      return Markup.button.callback(description, command)
+    products.map(({ name, description }) => {
+      return Markup.button.callback(description, name)
     })
   )
 
@@ -158,22 +155,13 @@ bot.command('meny', (ctx) => {
   })
 })
 
-products.forEach(({ command, description, priceCents }) => {
-  bot.action(command, addPurchaseOptionFromInline(description, priceCents))
+products.forEach(({ name, description, price_cents }) => {
+  bot.action(name, addPurchaseOptionFromInline(description, price_cents))
 })
 
-bot.command('saldo', async (ctx) => {
-  const balance = await getBalanceForMember(ctx.from.id)
-  return ctx.reply(`Ditt saldo är ${balance}€`)
-})
+//endregion
 
-bot.command('info', async (ctx) => {
-  return ctx.reply(info_message)
-})
-
-bot.command('start', async (ctx) => {
-  return ctx.reply(info_message)
-})
+//#region History
 
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id)
@@ -201,11 +189,28 @@ bot.command('historia', async (ctx) => {
   return ctx.reply(res, { parse_mode: 'Markdown' })
 })
 
+//endregion
+
+//#region Misc commands
+
+bot.command('saldo', async (ctx) => {
+  const balance = await getBalanceForMember(ctx.from.id)
+  return ctx.reply(`Ditt saldo är ${balance}€`)
+})
+
+bot.command('info', async (ctx) => {
+  return ctx.reply(info_message)
+})
+
+bot.command('start', async (ctx) => {
+  return ctx.reply(info_message)
+})
+
 bot.telegram.setMyCommands([
-  ...products.map(({ command, description, priceCents }) => ({
-    command,
+  ...products.map(({ name, description, price_cents }) => ({
+    command: name,
     description: `Köp 1 st ${description} för ${(
-      Number(priceCents) / -100
+      Number(price_cents) / -100
     ).toFixed(2)}€`,
   })),
   { command: 'saldo', description: 'Kontrollera saldo' },
@@ -216,6 +221,10 @@ bot.telegram.setMyCommands([
 
 // Admin middleware is used for all commands added after this line!
 bot.use(adminCommands)
+
+//endregion
+
+//#region Launch bot & misc
 
 bot.launch()
 
@@ -234,29 +243,4 @@ export const isChatMember = async (userId: number, chatId: number) => {
   }
 }
 
-const formatName = ({
-  first_name,
-  last_name,
-  username,
-}: {
-  first_name: string
-  last_name?: string
-  username?: string
-}) => {
-  const formattedLastName = last_name ? ` ${last_name}` : ``
-  const formattedUserName = username ? ` (${username})` : ``
-  return `${first_name}${formattedLastName}${formattedUserName}`
-}
-
-/**
- * Splits a array into an array of arrays with max n elements per subarray
- *
- * n defaults to 3
- */
-function formatButtonArray(array: any[], n: number = 3): any[][] {
-  const result = []
-  for (let i = 0; i < array.length; i += n) {
-    result.push(array.slice(i, i + n))
-  }
-  return result
-}
+//endregion
