@@ -60,7 +60,8 @@ export const exportTransactions = async (): Promise<
 }
 
 export const exportTransactionsForOneUser = async (
-  userId: number
+  userId: number,
+  transactionCount: number
 ): Promise<QueryResult<Transaction>> => {
   const res = await pool.query(
     `--sql
@@ -68,8 +69,8 @@ export const exportTransactionsForOneUser = async (
       FROM transactions
       WHERE user_id = $1
       ORDER BY id DESC
-      LIMIT 30`,
-    [userId]
+      LIMIT $2`,
+    [userId, transactionCount]
   )
   return res
 }
@@ -85,6 +86,16 @@ export const exportTransactionTemplate = async () => {
     row['amount_cents'] = 0
   })
   return res
+}
+
+export const undoTransaction = async (transactionId: number): Promise<void> => {
+  await pool.query(
+    `UPDATE transactions
+    SET description = CONCAT(description,'_undone'),
+      amount_cents = 0 
+    WHERE id = $1;`,
+    [transactionId]
+  )
 }
 
 const BalanceResponseSchema = z

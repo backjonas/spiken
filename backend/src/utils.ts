@@ -13,12 +13,22 @@ export const createCsv = (queryResult: QueryResult<any>) => {
   ${rows.join('\n')}`
 }
 
-export const formatDateToString = (date: Date) => {
-  return `${date.toLocaleDateString('sv-fi', {
+export const formatDateToString = (
+  date: Date,
+  includeTime: Boolean = false
+) => {
+  const dateFormated = date.toLocaleDateString('sv-fi', {
     year: '2-digit',
     month: '2-digit',
     day: '2-digit',
-  })} ${date.toLocaleDateString('sv-fi', { weekday: 'short' })}`
+  })
+  const dayFormated = date.toLocaleDateString('sv-fi', {
+    weekday: 'short',
+  })
+  const timeFormated = includeTime
+    ? `kl. ${date.toLocaleTimeString('sv-fi')}`
+    : ''
+  return `${dateFormated} ${dayFormated} ${timeFormated}`
 }
 
 /**

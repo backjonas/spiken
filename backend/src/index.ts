@@ -5,6 +5,7 @@ import {
   exportTransactionsForOneUser,
   getBalanceForMember,
   purchaseItemForMember,
+  undoTransaction,
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
@@ -164,7 +165,7 @@ products.forEach(({ name, description, price_cents }) => {
 //#region History
 
 bot.command('historia', async (ctx) => {
-  const history = await exportTransactionsForOneUser(ctx.from.id)
+  const history = await exportTransactionsForOneUser(ctx.from.id, 30)
 
   const parsedHistory = history.rows.map(
     ({ created_at, description, amount_cents }) => {
@@ -179,14 +180,45 @@ bot.command('historia', async (ctx) => {
   var res = `Ditt nuvarande saldo är ${saldo}. Här är din historia:\`\`\``
   parsedHistory.forEach((row) => {
     res +=
-      `\n${formatDateToString(
-        row.created_at
-      )} ${row.created_at.toLocaleTimeString('sv-fi')}, ` +
+      `\n${formatDateToString(row.created_at, true)}, ` +
       `${centsToEuroString(-row.amount_cents)}, ` +
       `${row.description}`
   })
   res += '```'
   return ctx.reply(res, { parse_mode: 'Markdown' })
+})
+
+//endregion
+
+//#region Undo
+
+bot.command('undo', async (ctx) => {
+  const queryResult = await exportTransactionsForOneUser(ctx.from.id, 1)
+  const latestTransaction = queryResult.rows[0]
+
+  if (latestTransaction.description.includes('_undone')) {
+    return ctx.reply('Din senaste händelse är redan ångrad')
+  }
+
+  try {
+    await undoTransaction(latestTransaction.id)
+
+    const message =
+      'Följande transaction har ångrats: \n' +
+      `\t\tTid: ${formatDateToString(latestTransaction.created_at, true)}\n` +
+      `\t\tProdukt: ${latestTransaction.description}\n` +
+      `\t\tPris: ${centsToEuroString(latestTransaction.amount_cents)}`
+
+    ctx.reply(message)
+    console.log(
+      `User id ${ctx.from.id} undid transaction id ${latestTransaction.id}`
+    )
+  } catch (e) {
+    ctx.reply('Kunde inte ångra din senaste transaktion, kontakta Cropieren')
+    console.log(
+      `User id ${ctx.from.id} tried to undo a transaction and faced the following problem error: ${e}`
+    )
+  }
 })
 
 //endregion

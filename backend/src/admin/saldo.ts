@@ -36,9 +36,7 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
   parsedHistory.forEach((row) => {
     res +=
       `\n${row.user_name.split(' ').slice(0, -1).join(' ')}, ` +
-      `${formatDateToString(
-        row.created_at
-      )} ${row.created_at.toLocaleTimeString('sv-fi')}, ` +
+      `${formatDateToString(row.created_at, true)}, ` +
       `${centsToEuroString(-row.amount_cents)}, ` +
       `${row.description}`
   })
