@@ -237,4 +237,27 @@ export const isChatMember = async (userId: number, chatId: number) => {
     return false
   }
 }
+
+/**
+ * Checks if the user is in the admin chat
+ * @param ctx
+ * @returns
+ */
+export const isAdminUser = async (
+  ctx: Context<{
+    message: Update.New & Update.NonChannel & Message.TextMessage
+    update_id: number
+  }> &
+    Omit<Context<Update>, keyof Context<Update>>
+) => {
+  const res: Promise<boolean> = isChatMember(ctx.from.id, config.adminChatId)
+  return res
+}
+function formatDateToString(date: Date) {
+  return `${date.toLocaleDateString('sv-fi', {
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+  })} ${date.toLocaleDateString('sv-fi', { weekday: 'short' })}`
+}
 //endregion

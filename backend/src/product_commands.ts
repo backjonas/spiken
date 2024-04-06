@@ -10,6 +10,7 @@ import {
   getProducts,
 } from './products.js'
 import { formatButtonArray } from './utils.js'
+import { isAdminUser } from './index.js'
 
 interface MyWizardSession extends Scenes.WizardSessionData {
   // available in scene context under ctx.scene.session
@@ -32,25 +33,38 @@ export const productsToArray = async (): Promise<Product[]> => {
     }
   }) as Product[]
 }
+
+const skipButtonKeyboard = Markup.inlineKeyboard([
+  Markup.button.callback('Skip (värdet uppdateras inte)', 'skip'),
+])
+
 //endregion
 
 //#region Delete
 const deleteCommand = bot.command('delete_product', async (ctx) => {
+  if (!(await isAdminUser(ctx))) {
+    return ctx.reply('Nå huhhu, försökt int börja ta bort någo här int!')
+  }
   const products = await productsToArray()
   const priceList = products.map(({ description, price_cents }) => {
     return `\n${description} - ${Number(price_cents) / -100}€`
   })
-  const keyboard_array = formatButtonArray(
-    products.map(({ id, description }) => {
-      return Markup.button.callback(
-        description,
-        `delete_productname_${id}_${description}`
-      )
-    })
+  const keyboard_array = products.map(({ id, description }) => {
+    return Markup.button.callback(
+      description,
+      `delete_productname_${id}_${description}`
+    )
+  })
+
+  const abortButton = Markup.button.callback(
+    'Avbryt',
+    'delete_productname_abort'
   )
 
   return ctx.reply(`Vilken produkt vill du ta bort?${priceList}`, {
-    ...Markup.inlineKeyboard(keyboard_array),
+    ...Markup.inlineKeyboard(
+      formatButtonArray([...keyboard_array, abortButton])
+    ),
   })
 })
 
@@ -70,7 +84,7 @@ const deleteCommandFollowUp = bot.action(
         `Removed product with id ${productId} and description "${productDescription}"`
       )
       return ctx.editMessageText(
-        `Raderingen av product "${productDescription}" lyckades!`
+        `Raderingen av produkt "${productDescription}" lyckades!`
       )
     } catch (e) {
       console.log(
@@ -78,9 +92,16 @@ const deleteCommandFollowUp = bot.action(
         e
       )
       return ctx.editMessageText(
-        `Raderingen av product ${productId} misslyckades! Klaga till nån!`
+        `Raderingen av produkt ${productId} misslyckades! Klaga till nån!`
       )
     }
+  }
+)
+
+const deleteCommandAbort = bot.action(
+  'delete_productname_abort',
+  async (ctx) => {
+    return ctx.editMessageText('Raderingen av produkter avbröts')
   }
 )
 //#endregion
@@ -124,44 +145,65 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
         )
       }
       ctx.scene.session.newProduct.priceCents = `-` + ctx.message.text
-      console.log(ctx.scene.session.newProduct)
-      const product = {
-        name: ctx.scene.session.newProduct.name,
-        description: ctx.scene.session.newProduct.description,
-        priceCents: ctx.scene.session.newProduct.priceCents,
+
+      const newProduct = ctx.scene.session.newProduct
+      confirmOrAbortReplyForAdd(ctx, newProduct)
+      return ctx.wizard.next()
+    }
+  },
+  async (ctx) => {
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      const decision = ctx.callbackQuery.data
+      if (decision === 'confirm') {
+        const product = {
+          name: ctx.scene.session.newProduct.name,
+          description: ctx.scene.session.newProduct.description,
+          priceCents: ctx.scene.session.newProduct.priceCents,
+        }
+        try {
+          await addProduct(product)
+          console.log(
+            'The following product has been added:\n' +
+              `name:"${ctx.scene.session.newProduct.name}"\n` +
+              `description:"${ctx.scene.session.newProduct.description}"\n` +
+              `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`
+          )
+          ctx.reply('Produkten har lagts till!')
+        } catch (e) {
+          console.log(
+            'The following product could not be added:\n' +
+              `name:"${ctx.scene.session.newProduct.name}"\n` +
+              `description:"${ctx.scene.session.newProduct.description}"\n` +
+              `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`,
+            e
+          )
+        }
+        return ctx.scene.leave()
+      } else if (decision === 'abort') {
+        ctx.reply('Tillägning av produkt avbruten.')
+        return ctx.scene.leave()
       }
-      try {
-        await addProduct(product)
-        console.log(
-          'The following product has been added:\n' +
-            `name:"${ctx.scene.session.newProduct.name}"\n` +
-            `description:"${ctx.scene.session.newProduct.description}"\n` +
-            `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`
-        )
-        ctx.reply('Produkten har lagts till!')
-      } catch (e) {
-        console.log(
-          'The following product could not be added:\n' +
-            `name:"${ctx.scene.session.newProduct.name}"\n` +
-            `description:"${ctx.scene.session.newProduct.description}"\n` +
-            `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`,
-          e
-        )
-      }
-      return ctx.scene.leave()
     } else {
-      ctx.reply('Du måst skriva en text')
+      ctx.reply('Du måst trycka på endera alternativ')
     }
   }
 )
 
+function confirmOrAbortReplyForAdd(ctx: ContextWithScenes, product: ProductIn) {
+  ctx.reply(
+    `Följande product kommer att läggas till:\n` +
+      `\t${product.name}\n` +
+      `\t${product.description}\n` +
+      `\t${-product.priceCents}\n`,
+    {
+      ...confirmOrAbortButton,
+    }
+  )
+}
+
 //#endregion
 
 //#region Edit
-
-const skipButtonKeyboard = Markup.inlineKeyboard([
-  Markup.button.callback('Skip (värdet uppdateras inte)', 'skip'),
-])
 
 const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'edit_product_scene',
@@ -250,6 +292,32 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'skip') {
+        const updatedProduct = ctx.scene.session.product
+        await confirmOrAbortButtonForEdit(ctx, updatedProduct)
+
+        return ctx.wizard.next()
+      }
+    } else if (ctx.message && 'text' in ctx.message) {
+      if (Number(ctx.message.text) < 0) {
+        return ctx.reply(
+          'Priset måste vara positivt, det läggs sedan in i databasen som negativt!'
+        )
+      }
+      ctx.scene.session.product.price_cents = `-` + ctx.message.text
+
+      const updatedProduct = ctx.scene.session.product
+
+      await confirmOrAbortButtonForEdit(ctx, updatedProduct)
+
+      return ctx.wizard.next()
+    } else {
+      ctx.reply('Du måst skriva en text')
+    }
+  },
+  async (ctx) => {
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      const decision = ctx.callbackQuery.data
+      if (decision === 'confirm') {
         try {
           await editProduct(ctx.scene.session.product)
           console.log(
@@ -264,47 +332,55 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
           )
         }
         return ctx.scene.leave()
+      } else if (decision === 'abort') {
+        ctx.reply('Uppdatering av produkten avbruten.')
+        return ctx.scene.leave()
       }
-    }
-    if (ctx.message && 'text' in ctx.message) {
-      if (Number(ctx.message.text) < 0) {
-        return ctx.reply(
-          'Priset måste vara positivt, det läggs sedan in i databasen som negativt!'
-        )
-      }
-      ctx.scene.session.product.price_cents = `-` + ctx.message.text
-      try {
-        await editProduct(ctx.scene.session.product)
-        console.log(
-          `Product "${ctx.scene.session.product.name}" with id ${ctx.scene.session.product.id} has been updated!`
-        )
-        ctx.reply('Produkten har uppdaterats!')
-      } catch (e) {
-        ctx.reply('Produkten kunde inte uppdaterats!')
-        console.log(
-          `Product "${ctx.scene.session.product.name}" with id ${ctx.scene.session.product.id} could not be edited:`,
-          e
-        )
-      }
-      return ctx.scene.leave()
     } else {
-      ctx.reply('Du måst skriva en text')
+      ctx.reply('Du måst trycka på endera alternativ')
     }
   }
 )
+
+async function confirmOrAbortButtonForEdit(
+  ctx: ContextWithScenes,
+  product: Product
+) {
+  const originalProduct = (await getProductById(product.id)).rows[0]
+  ctx.reply(
+    `Följande product kommer att uppdateras:\n` +
+      `\t${originalProduct.name} --> ${product.name}\n` +
+      `\t${originalProduct.description} --> ${product.description}\n` +
+      `\t${-originalProduct.price_cents} --> ${-product.price_cents}\n`,
+    {
+      ...confirmOrAbortButton,
+    }
+  )
+}
 
 //#endregion
 
 //#region Misc & Export
 
+const confirmOrAbortButton = Markup.inlineKeyboard([
+  Markup.button.callback('Godkänn', 'confirm'),
+  Markup.button.callback('Avbryt', 'abort'),
+])
+
 const stage = new Scenes.Stage([addProductScene, editProductScene])
 bot.use(stage.middleware())
 
 const addCommand = bot.command('add_product', async (ctx) => {
+  if (!(await isAdminUser(ctx))) {
+    return ctx.reply('Nå huhhu, du får nu ba njuta av de som redan finns!')
+  }
   await ctx.scene.enter('add_product_scene')
 })
 
 const editCommand = bot.command('edit_product', async (ctx) => {
+  if (!(await isAdminUser(ctx))) {
+    return ctx.reply('Nå huhhu, produkterna e nog ba just som dom e!')
+  }
   await ctx.scene.enter('edit_product_scene')
 })
 
@@ -313,6 +389,7 @@ export default Composer.compose([
   editCommand,
   deleteCommand,
   deleteCommandFollowUp,
+  deleteCommandAbort,
 ])
 
 //#endregion
