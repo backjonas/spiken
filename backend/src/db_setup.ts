@@ -19,8 +19,6 @@ await pool.query(
   `
 )
 
-// await pool.query(`DROP TABLE products`)
-
 await pool.query(
   `CREATE TABLE IF NOT EXISTS products(
     id SERIAL,
@@ -30,11 +28,3 @@ await pool.query(
   );
   `
 )
-
-// await pool.query(
-//   `INSERT INTO products
-//     (name, description, price_cents)
-//   VALUES(
-//     'patron', 'Patron', -1200);
-//   `
-// )
