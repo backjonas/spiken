@@ -46,4 +46,16 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
   return ctx.reply(res, { parse_mode: 'Markdown' })
 })
 
-export default Composer.compose([exportCommand, allHistoryCommand])
+const saldoTemplateCommand = bot.command('saldo_template', async (ctx) => {
+  const csv = createCsv(await exportTransactionTemplate())
+  ctx.replyWithDocument({
+    source: Buffer.from(csv, 'utf-8'),
+    filename: `saldo-template-${new Date().toISOString()}.csv`,
+  })
+})
+
+export default Composer.compose([
+  exportCommand,
+  allHistoryCommand,
+  saldoTemplateCommand,
+])
