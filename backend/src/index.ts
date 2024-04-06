@@ -8,9 +8,14 @@ import {
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
-import { ContextWithScenes, productsToArray } from './product_commands.js'
-import productCommands from './product_commands.js'
-import { centsToEuroString, formatButtonArray, formatDateToString, formatName } from './utils.js'
+import { ContextWithScenes, productsToArray } from './admin/product.js'
+import productCommands from './admin/product.js'
+import {
+  centsToEuroString,
+  formatButtonArray,
+  formatDateToString,
+  formatName,
+} from './utils.js'
 
 /*
 Toiveiden tynnyri:
@@ -238,26 +243,4 @@ export const isChatMember = async (userId: number, chatId: number) => {
   }
 }
 
-/**
- * Checks if the user is in the admin chat
- * @param ctx
- * @returns
- */
-export const isAdminUser = async (
-  ctx: Context<{
-    message: Update.New & Update.NonChannel & Message.TextMessage
-    update_id: number
-  }> &
-    Omit<Context<Update>, keyof Context<Update>>
-) => {
-  const res: Promise<boolean> = isChatMember(ctx.from.id, config.adminChatId)
-  return res
-}
-function formatDateToString(date: Date) {
-  return `${date.toLocaleDateString('sv-fi', {
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit',
-  })} ${date.toLocaleDateString('sv-fi', { weekday: 'short' })}`
-}
 //endregion

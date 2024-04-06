@@ -8,9 +8,8 @@ import {
   editProduct,
   getProductById,
   getProducts,
-} from './products.js'
-import { formatButtonArray } from './utils.js'
-import { isAdminUser } from './index.js'
+} from '../products.js'
+import { formatButtonArray } from '../utils.js'
 
 interface MyWizardSession extends Scenes.WizardSessionData {
   // available in scene context under ctx.scene.session
@@ -42,9 +41,6 @@ const skipButtonKeyboard = Markup.inlineKeyboard([
 
 //#region Delete
 const deleteCommand = bot.command('delete_product', async (ctx) => {
-  if (!(await isAdminUser(ctx))) {
-    return ctx.reply('Nå huhhu, försökt int börja ta bort någo här int!')
-  }
   const products = await productsToArray()
   const priceList = products.map(({ description, price_cents }) => {
     return `\n${description} - ${Number(price_cents) / -100}€`
@@ -371,16 +367,10 @@ const stage = new Scenes.Stage([addProductScene, editProductScene])
 bot.use(stage.middleware())
 
 const addCommand = bot.command('add_product', async (ctx) => {
-  if (!(await isAdminUser(ctx))) {
-    return ctx.reply('Nå huhhu, du får nu ba njuta av de som redan finns!')
-  }
   await ctx.scene.enter('add_product_scene')
 })
 
 const editCommand = bot.command('edit_product', async (ctx) => {
-  if (!(await isAdminUser(ctx))) {
-    return ctx.reply('Nå huhhu, produkterna e nog ba just som dom e!')
-  }
   await ctx.scene.enter('edit_product_scene')
 })
 
