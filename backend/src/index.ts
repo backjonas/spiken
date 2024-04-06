@@ -1,13 +1,13 @@
 import { Context, Markup, Telegraf } from 'telegraf'
 import { config } from './config.js'
 import {
-  exportTransactions,
   exportTransactionsForOneUser,
   getBalanceForMember,
   purchaseItemForMember,
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
-import { QueryResult } from 'pg'
+import { formatDateToString, centsToEuroString } from './utils.js'
+import adminCommands from './admin/index.js'
 
 /*
 Toiveiden tynnyri:
@@ -201,59 +201,6 @@ bot.command('historia', async (ctx) => {
   return ctx.reply(res, { parse_mode: 'Markdown' })
 })
 
-bot.command('historia_all', async (ctx) => {
-  if (!(await isAdminUser(ctx))) {
-    return ctx.reply('Nå huhhu, håll dig ti ditt egna dåkande!')
-  }
-  const history = await exportTransactions()
-
-  const parsedHistory = history.rows.map(
-    ({ user_name, created_at, description, amount_cents }) => {
-      return {
-        user_name,
-        created_at,
-        description,
-        amount_cents,
-      }
-    }
-  )
-
-  var res = `\`\`\``
-  parsedHistory.forEach((row) => {
-    res +=
-      `\n${row.user_name.split(' ').slice(0, -1).join(' ')}, ` +
-      `${formatDateToString(
-        row.created_at
-      )} ${row.created_at.toLocaleTimeString('sv-fi')}, ` +
-      `${centsToEuroString(-row.amount_cents)}, ` +
-      `${row.description}`
-  })
-  res += '```'
-  return ctx.reply(res, { parse_mode: 'Markdown' })
-})
-
-bot.command('exportera', async (ctx) => {
-  if (!(await isAdminUser(ctx))) {
-    return ctx.reply('sii dej i reven, pleb!')
-  }
-  // Temp solution until I or Bäck fixes the error this produces
-  const res: QueryResult<any> = await exportTransactions()
-  const headers = res.fields.map((field) => field.name)
-  const rows = res.rows.map((row) => {
-    return headers
-      .map((header) => {
-        return (String(row[header]) ?? '').replace(',', '')
-      })
-      .join(', ')
-  })
-  const csv = `${headers.join(', ')}
-  ${rows.join('\n')}`
-  ctx.replyWithDocument({
-    source: Buffer.from(csv, 'utf-8'),
-    filename: `spiken-dump-${new Date().toISOString()}.csv`,
-  })
-})
-
 bot.telegram.setMyCommands([
   ...products.map(({ command, description, priceCents }) => ({
     command,
@@ -267,13 +214,16 @@ bot.telegram.setMyCommands([
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
 ])
 
+// Admin middleware is used for all commands added after this line!
+bot.use(adminCommands)
+
 bot.launch()
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
-const isChatMember = async (userId: number, chatId: number) => {
+export const isChatMember = async (userId: number, chatId: number) => {
   const acceptedStatuses = ['creator', 'administrator', 'member', 'owner']
   try {
     const member = await bot.telegram.getChatMember(chatId, userId)
@@ -296,41 +246,6 @@ const formatName = ({
   const formattedLastName = last_name ? ` ${last_name}` : ``
   const formattedUserName = username ? ` (${username})` : ``
   return `${first_name}${formattedLastName}${formattedUserName}`
-}
-/**
- * Formats from number of cent to a string in euro. I.e. -350 becomes "-3.5€"
- * @param amountInCents
- * @returns
- */
-function centsToEuroString(amountInCents: number): string {
-  var euro = (amountInCents / -100).toFixed(2).toString()
-  if (euro[0] !== '-') {
-    euro = ' ' + euro
-  }
-  return euro + '€'
-}
-
-/**
- * Checks if the user is in the admin chat
- * @param ctx
- * @returns
- */
-const isAdminUser = async (
-  ctx: Context<{
-    message: Update.New & Update.NonChannel & Message.TextMessage
-    update_id: number
-  }> &
-    Omit<Context<Update>, keyof Context<Update>>
-) => {
-  const res: Promise<boolean> = isChatMember(ctx.from.id, config.adminChatId)
-  return res
-}
-function formatDateToString(date: Date) {
-  return `${date.toLocaleDateString('sv-fi', {
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit',
-  })} ${date.toLocaleDateString('sv-fi', { weekday: 'short' })}`
 }
 
 /**

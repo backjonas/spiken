@@ -74,6 +74,19 @@ export const exportTransactionsForOneUser = async (
   return res
 }
 
+export const exportTransactionTemplate = async () => {
+  const res = await pool.query(
+    `SELECT DISTINCT ON (user_id) user_id, user_name, description, amount_cents
+    FROM transactions 
+    ORDER BY user_id, created_at DESC;`
+  )
+  res.rows.forEach((row) => {
+    row['description'] = ''
+    row['amount_cents'] = 0
+  })
+  return res
+}
+
 const BalanceResponseSchema = z
   .array(
     z.object({
