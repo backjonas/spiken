@@ -9,7 +9,8 @@ import {
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
-import { ContextWithScenes, productsToArray } from './admin/product.js'
+import { productsToArray } from './admin/product.js'
+import { ContextWithScenes } from './admin/scene.js'
 import productCommands from './admin/product.js'
 import {
   centsToEuroString,

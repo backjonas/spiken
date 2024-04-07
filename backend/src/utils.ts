@@ -68,3 +68,19 @@ export function formatButtonArray<T>(array: T[], n: number = 3): T[][] {
   }
   return result
 }
+
+export const formatTransaction = (
+  user_name: string,
+  description: string,
+  amount_cents: number,
+  created_at: Date = new Date()
+) => {
+  return (
+    `\n${user_name.split(' ').slice(0, -1).join(' ')}, ` +
+    `${formatDateToString(created_at)} ${created_at.toLocaleTimeString(
+      'sv-fi'
+    )}, ` +
+    `${centsToEuroString(-amount_cents)}, ` +
+    `${description}`
+  )
+}

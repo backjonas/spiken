@@ -55,24 +55,28 @@ export const getBalanceForMember = async (userId: number) => {
 export const exportTransactions = async (): Promise<
   QueryResult<Transaction>
 > => {
-  const res = await pool.query(`SELECT * FROM transactions`)
-  return res
+  return await pool.query(
+    `--sql
+      SELECT *
+      FROM transactions
+      ORDER BY created_at DESC
+      LIMIT 30`
+  )
 }
 
 export const exportTransactionsForOneUser = async (
   userId: number,
   transactionCount: number
 ): Promise<QueryResult<Transaction>> => {
-  const res = await pool.query(
+  return await pool.query(
     `--sql
       SELECT *
       FROM transactions
       WHERE user_id = $1
-      ORDER BY id DESC
+      ORDER BY created_at DESC
       LIMIT $2`,
     [userId, transactionCount]
   )
-  return res
 }
 
 export const exportTransactionTemplate = async () => {
