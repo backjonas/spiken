@@ -7,9 +7,9 @@ export const createCsv = (queryResult: QueryResult<any>) => {
       .map((header) => {
         return (String(row[header]) ?? '').replace(',', '')
       })
-      .join(', ')
+      .join(',')
   })
-  return `${headers.join(', ')}
+  return `${headers.join(',')}
   ${rows.join('\n')}`
 }
 
