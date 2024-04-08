@@ -140,7 +140,7 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
           )
           .join('') +
         '```'
-      return ctx.reply(confirmationMessage, {
+      ctx.reply(confirmationMessage, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
           Markup.button.callback('Godkänn', 'confirm'),
