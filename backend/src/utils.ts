@@ -73,13 +73,13 @@ export const formatTransaction = (
   user_name: string,
   description: string,
   amount_cents: number,
-  created_at: Date = new Date()
+  created_at?: Date
 ) => {
+  const timeString =
+    created_at !== undefined ? `${formatDateToString(created_at, true)}, ` : ''
   return (
     `\n${user_name.split(' ').slice(0, -1).join(' ')}, ` +
-    `${formatDateToString(created_at)} ${created_at.toLocaleTimeString(
-      'sv-fi'
-    )}, ` +
+    timeString +
     `${centsToEuroString(-amount_cents)}, ` +
     `${description}`
   )
