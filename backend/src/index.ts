@@ -201,6 +201,10 @@ bot.command('undo', async (ctx) => {
     return ctx.reply('Din senaste händelse är redan ångrad')
   }
 
+  if (latestTransaction.amount_cents > 0) {
+    return ctx.reply('Du kan inte ångra en insättning')
+  }
+
   try {
     const productUndone = {
       userId: latestTransaction.user_id,
