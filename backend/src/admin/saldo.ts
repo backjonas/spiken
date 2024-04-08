@@ -60,6 +60,7 @@ Saldo templaten kan antingen editeras rakt i en text editor eller importeras til
 Ifall excel används, se till att exportera med "," eller ";" som delimiter.
 
 Från templaten behöver endast kolumnerna "amount_cents" och "description" ändras.
+En transaktion skapas för varje rad i csv-filen, ta alltså bort rader där summan hålls som 0.
 
 "amount_cents" är storleken på transaktionen i cent.
 Observera att en inbetalning ska ha ett positiv tal och att en kostnad ska ha ett negativt tal!
