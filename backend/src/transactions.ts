@@ -5,7 +5,7 @@ import { QueryResult } from 'pg'
 export interface Transaction {
   id: number
   created_at: Date
-  userId: number
+  user_id: number
   user_name: string
   description: string
   amount_cents: number
@@ -60,7 +60,8 @@ export const exportTransactions = async (): Promise<
 }
 
 export const exportTransactionsForOneUser = async (
-  userId: number
+  userId: number,
+  transactionCount: number
 ): Promise<QueryResult<Transaction>> => {
   const res = await pool.query(
     `--sql
@@ -68,8 +69,8 @@ export const exportTransactionsForOneUser = async (
       FROM transactions
       WHERE user_id = $1
       ORDER BY id DESC
-      LIMIT 30`,
-    [userId]
+      LIMIT $2`,
+    [userId, transactionCount]
   )
   return res
 }

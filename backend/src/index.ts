@@ -2,6 +2,7 @@
 import { Context, Markup, Telegraf, session } from 'telegraf'
 import { config } from './config.js'
 import {
+  TransactionInsert,
   exportTransactionsForOneUser,
   getBalanceForMember,
   purchaseItemForMember,
@@ -164,7 +165,7 @@ products.forEach(({ name, description, price_cents }) => {
 //#region History
 
 bot.command('historia', async (ctx) => {
-  const history = await exportTransactionsForOneUser(ctx.from.id)
+  const history = await exportTransactionsForOneUser(ctx.from.id, 30)
 
   const parsedHistory = history.rows.map(
     ({ created_at, description, amount_cents }) => {
@@ -179,14 +180,56 @@ bot.command('historia', async (ctx) => {
   var res = `Ditt nuvarande saldo är ${saldo}. Här är din historia:\`\`\``
   parsedHistory.forEach((row) => {
     res +=
-      `\n${formatDateToString(
-        row.created_at
-      )} ${row.created_at.toLocaleTimeString('sv-fi')}, ` +
+      `\n${formatDateToString(row.created_at, true)}, ` +
       `${centsToEuroString(-row.amount_cents)}, ` +
       `${row.description}`
   })
   res += '```'
   return ctx.reply(res, { parse_mode: 'Markdown' })
+})
+
+//endregion
+
+//#region Undo
+
+bot.command('undo', async (ctx) => {
+  const queryResult = await exportTransactionsForOneUser(ctx.from.id, 1)
+  const latestTransaction = queryResult.rows[0]
+
+  const description = latestTransaction.description
+  if (description.includes('_undo') || description.includes('Manuell_')) {
+    return ctx.reply('Din senaste händelse är redan ångrad')
+  }
+
+  if (latestTransaction.amount_cents > 0) {
+    return ctx.reply('Du kan inte ångra en insättning')
+  }
+
+  try {
+    const productUndone = {
+      userId: latestTransaction.user_id,
+      userName: latestTransaction.user_name,
+      description: latestTransaction.description + '_undo',
+      amountCents: String(-latestTransaction.amount_cents),
+    } as TransactionInsert
+    await purchaseItemForMember(productUndone)
+
+    const message =
+      'Följande transaction har ångrats: \n' +
+      `\t\tTid: ${formatDateToString(latestTransaction.created_at, true)}\n` +
+      `\t\tProdukt: ${latestTransaction.description}\n` +
+      `\t\tPris: ${centsToEuroString(latestTransaction.amount_cents)}`
+
+    ctx.reply(message)
+    console.log(
+      `User id ${ctx.from.id} undid transaction id ${latestTransaction.id}`
+    )
+  } catch (e) {
+    ctx.reply('Kunde inte ångra din senaste transaktion, kontakta Cropieren')
+    console.log(
+      `User id ${ctx.from.id} tried to undo a transaction and faced the following problem error: ${e}`
+    )
+  }
 })
 
 //endregion
@@ -217,6 +260,7 @@ bot.telegram.setMyCommands([
   { command: 'info', description: 'Visar information om bottens användning' },
   { command: 'meny', description: 'Tar upp köp menyn för alla produkter' },
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
+  { command: 'undo', description: 'Ångra ditt senaste köp' },
 ])
 
 // Admin middleware is used for all commands added after this line!
