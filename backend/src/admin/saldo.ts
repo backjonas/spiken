@@ -132,9 +132,15 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
     ${error}`
         )
       }
+
+      const transactions = ctx.scene.session.transactions
+      transactions.forEach(
+        (t) => (t.description = `Manuell transaktion: ${t.description}`)
+      )
+
       const confirmationMessage =
         'Följande transaktioner kommer läggas till:\n```' +
-        ctx.scene.session.transactions
+        transactions
           .map((t) =>
             formatTransaction(t.userName, t.description, Number(t.amountCents))
           )
@@ -154,9 +160,9 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'confirm') {
         const transactions = ctx.scene.session.transactions
-        transactions.forEach((transaction) =>
-          purchaseItemForMember(transaction)
-        )
+        for (const t of transactions) {
+          await purchaseItemForMember(t)
+        }
         ctx.scene.leave()
         return ctx.reply(`Saldoladdningen lyckades med en insättning av ${transactions.length} nya transaktioner.
 Använd /historia_all eller /exportera för att inspektera de nya transaktionerna.`)

@@ -198,7 +198,10 @@ bot.command('undo', async (ctx) => {
   const latestTransaction = queryResult.rows[0]
 
   const description = latestTransaction.description
-  if (description.includes('_undo') || description.includes('Manuell_')) {
+  if (
+    description.endsWith('_undo') ||
+    description.startsWith('Manuell transaktion: ')
+  ) {
     return ctx.reply('Din senaste händelse är redan ångrad')
   }
 
@@ -216,7 +219,7 @@ bot.command('undo', async (ctx) => {
     await purchaseItemForMember(productUndone)
 
     const message =
-      'Följande transaction har ångrats: \n' +
+      'Följande transaktion har ångrats: \n' +
       `\t\tTid: ${formatDateToString(latestTransaction.created_at, true)}\n` +
       `\t\tProdukt: ${latestTransaction.description}\n` +
       `\t\tPris: ${centsToEuroString(latestTransaction.amount_cents)}`
