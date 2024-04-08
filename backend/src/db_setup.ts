@@ -11,7 +11,7 @@ await pool.query(
   `CREATE TABLE IF NOT EXISTS transactions(
     id SERIAL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    user_id BIGINT,
+    user_id BIGINT NOT NULL,
     user_name TEXT,
     description TEXT,
     amount_cents INTEGER

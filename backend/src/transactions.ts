@@ -5,7 +5,7 @@ import { QueryResult } from 'pg'
 export interface Transaction {
   id: number
   created_at: Date
-  userId: number
+  user_id: number
   user_name: string
   description: string
   amount_cents: number
@@ -86,16 +86,6 @@ export const exportTransactionTemplate = async () => {
     row['amount_cents'] = 0
   })
   return res
-}
-
-export const undoTransaction = async (transactionId: number): Promise<void> => {
-  await pool.query(
-    `UPDATE transactions
-    SET description = CONCAT(description,'_undone'),
-      amount_cents = 0 
-    WHERE id = $1;`,
-    [transactionId]
-  )
 }
 
 const BalanceResponseSchema = z

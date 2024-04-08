@@ -2,10 +2,10 @@
 import { Context, Markup, Telegraf, session } from 'telegraf'
 import { config } from './config.js'
 import {
+  TransactionInsert,
   exportTransactionsForOneUser,
   getBalanceForMember,
   purchaseItemForMember,
-  undoTransaction,
 } from './transactions.js'
 import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
@@ -196,12 +196,19 @@ bot.command('undo', async (ctx) => {
   const queryResult = await exportTransactionsForOneUser(ctx.from.id, 1)
   const latestTransaction = queryResult.rows[0]
 
-  if (latestTransaction.description.includes('_undone')) {
+  const description = latestTransaction.description
+  if (description.includes('_undo') || description.includes('Manuell_')) {
     return ctx.reply('Din senaste händelse är redan ångrad')
   }
 
   try {
-    await undoTransaction(latestTransaction.id)
+    const productUndone = {
+      userId: latestTransaction.user_id,
+      userName: latestTransaction.user_name,
+      description: latestTransaction.description + '_undo',
+      amountCents: String(-latestTransaction.amount_cents),
+    } as TransactionInsert
+    await purchaseItemForMember(productUndone)
 
     const message =
       'Följande transaction har ångrats: \n' +
@@ -249,6 +256,7 @@ bot.telegram.setMyCommands([
   { command: 'info', description: 'Visar information om bottens användning' },
   { command: 'meny', description: 'Tar upp köp menyn för alla produkter' },
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
+  { command: 'undo', description: 'Ångra ditt senaste köp' },
 ])
 
 // Admin middleware is used for all commands added after this line!
