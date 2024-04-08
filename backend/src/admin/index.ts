@@ -24,7 +24,7 @@ bot.command('admin', async (ctx) => {
     '/delete_product För att ta bort en produkt\n' +
     '/exportera CSV-dump av alla transaktioner\n' +
     '/historia_all Se de senaste händelserna för alla användare\n' +
-    '/saldo_template Exportera template för att manuellt ändra på användares saldo\n'
+    '/saldo_upload För att lägga till transaktioner manuellt\n'
   return ctx.reply(admin_message)
 })
 

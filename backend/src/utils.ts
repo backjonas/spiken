@@ -7,9 +7,9 @@ export const createCsv = (queryResult: QueryResult<any>) => {
       .map((header) => {
         return (String(row[header]) ?? '').replace(',', '')
       })
-      .join(', ')
+      .join(',')
   })
-  return `${headers.join(', ')}
+  return `${headers.join(',')}
   ${rows.join('\n')}`
 }
 
@@ -67,4 +67,20 @@ export function formatButtonArray<T>(array: T[], n: number = 3): T[][] {
     result.push(array.slice(i, i + n))
   }
   return result
+}
+
+export const formatTransaction = (
+  user_name: string,
+  description: string,
+  amount_cents: number,
+  created_at?: Date
+) => {
+  const timeString =
+    created_at !== undefined ? `${formatDateToString(created_at, true)}, ` : ''
+  return (
+    `\n${user_name.split(' ').slice(0, -1).join(' ')}, ` +
+    timeString +
+    `${centsToEuroString(-amount_cents)}, ` +
+    `${description}`
+  )
 }

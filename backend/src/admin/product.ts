@@ -10,14 +10,7 @@ import {
   getProducts,
 } from '../products.js'
 import { formatButtonArray } from '../utils.js'
-
-interface MyWizardSession extends Scenes.WizardSessionData {
-  // available in scene context under ctx.scene.session
-  newProduct: ProductIn
-  product: Product
-}
-
-export type ContextWithScenes = Scenes.WizardContext<MyWizardSession>
+import { ContextWithScenes } from './scene.js'
 
 const bot = new Composer<ContextWithScenes>()
 
