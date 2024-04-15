@@ -196,7 +196,14 @@ const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
 
 //#region Shame
 
-const shameCommand = bot.command('shame', async (ctx) => {
+/**
+ * The command sends a message to each user that has a saldo lower than the cut-off with a default cut-off of 0.
+ * I.e sending `/shame` will send a message to all users with negative score, 
+ * while ending `shame_20` will send a message to all users with a balance of less than -20.
+ */
+const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
+  const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
+  console.log(saldoCutOff)
 
   const balances = await getAllBalances()
 
@@ -206,19 +213,17 @@ const shameCommand = bot.command('shame', async (ctx) => {
     'med referensnumret 123dinmamma.'
 
   for (const { user_id, balance } of balances) {
-    const message = stringTemplate.replace('{saldo}', String(balance.toFixed(2)))
+    const message = stringTemplate.replace(
+      '{saldo}',
+      String(balance.toFixed(2))
+    )
 
-    if (balance < 0 && String(user_id) === '55244162') {
-      ctx.telegram.sendMessage(
-        user_id,
-        message,
-        { parse_mode: 'HTML' }
-      )
+    if (balance <= -saldoCutOff && String(user_id) === '55244162') {
+      ctx.telegram.sendMessage(user_id, message, { parse_mode: 'HTML' })
     }
   }
 })
 
 //endregion
-
 
 export default bot
