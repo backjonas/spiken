@@ -6,9 +6,10 @@ import {
   getAllBalances,
   purchaseItemForMember,
 } from '../transactions.js'
-import { createCsv, formatTransaction } from '../utils.js'
+import { createCsv, formatName, formatTransaction } from '../utils.js'
 import { config } from '../config.js'
 import { ContextWithScenes } from './scene.js'
+import { Chat } from 'telegraf/typings/core/types/typegram.js'
 
 const bot = new Composer<ContextWithScenes>()
 
@@ -198,19 +199,20 @@ const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
 
 /**
  * The command sends a message to each user that has a saldo lower than the cut-off with a default cut-off of 0.
- * I.e sending `/shame` will send a message to all users with negative score, 
+ * I.e sending `/shame` will send a message to all users with negative score,
  * while ending `shame_20` will send a message to all users with a balance of less than -20.
  */
 const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
   const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
-  console.log(saldoCutOff)
 
   const balances = await getAllBalances()
 
   const stringTemplate =
-    'Ditt saldo e nu <b>{saldo}</b>, borde du kanske betala?' +
+    'Ditt saldo e nu <b>{saldo}€</b>, borde du kanske betala?' +
     '\nDu kan betala genom att skicka en summa till kontonumret FI 123 123' +
     'med referensnumret 123dinmamma.'
+
+  var pingedUsers: { user_id: string; balance: number }[] = []
 
   for (const { user_id, balance } of balances) {
     const message = stringTemplate.replace(
@@ -218,9 +220,35 @@ const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
       String(balance.toFixed(2))
     )
 
-    if (balance <= -saldoCutOff && String(user_id) === '55244162') {
+    if (balance <= -saldoCutOff) {
+      pingedUsers.push({ user_id, balance })
       ctx.telegram.sendMessage(user_id, message, { parse_mode: 'HTML' })
     }
+  }
+
+  if (pingedUsers.length > 0) {
+    var adminMessage = `The following users were pinged with a cut-off of -${saldoCutOff}:<pre>`
+
+    // Map pingedUsers to an array of promises
+    const chatPromises = pingedUsers.map(async ({ user_id, balance }) => {
+      const chatPromise = (await ctx.telegram.getChat(
+        user_id
+      )) as Chat.PrivateGetChat
+      return { chat: chatPromise, balance }
+    })
+
+    // Wait for all promises to resolve
+    const resolvedChats = await Promise.all(chatPromises)
+
+    resolvedChats.forEach(({ chat, balance }) => {
+      const name = formatName(chat)
+      adminMessage += `${name}: ${balance}€\n`
+    })
+
+    adminMessage += '</pre>'
+    ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
+      parse_mode: 'HTML',
+    })
   }
 })
 
