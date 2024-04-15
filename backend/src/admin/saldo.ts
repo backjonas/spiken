@@ -3,9 +3,8 @@ import { parse } from 'csv-parse/sync'
 import {
   exportTransactions,
   exportTransactionTemplate,
-  getBalanceForMember,
+  getAllBalances,
   purchaseItemForMember,
-  Transaction,
 } from '../transactions.js'
 import { createCsv, formatTransaction } from '../utils.js'
 import { config } from '../config.js'
@@ -44,6 +43,8 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
 })
 
 //endregion
+
+//#region Manual saldo update
 const saldoTemplateCommand = bot.command('saldo_template', async (ctx) => {
   const csv = createCsv(await exportTransactionTemplate())
   ctx.replyWithDocument({
@@ -191,55 +192,33 @@ const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
   await ctx.scene.enter('saldo_upload_scene')
 })
 
+//endregion
+
 //#region Shame
 
 const shameCommand = bot.command('shame', async (ctx) => {
-  const history = await exportTransactions()
 
-  const saldos: { userId: number; name: string; saldo: number }[] =
-    history.rows.reduce(
-      (
-        array: { userId: number; name: string; saldo: number }[],
-        current: Transaction
-      ) => {
-        const existingUser = array.find((obj) => obj.userId === current.user_id)
-        if (!existingUser) {
-          array.push({
-            userId: current.user_id,
-            name: current.user_name,
-            saldo: 0,
-          })
-        }
-        return array
-      },
-      []
-    )
+  const balances = await getAllBalances()
 
   const stringTemplate =
-    'Ditt saldo e nu {saldo}, borde du kanske betala?' +
+    'Ditt saldo e nu <b>{saldo}</b>, borde du kanske betala?' +
     '\nDu kan betala genom att skicka en summa till kontonumret FI 123 123' +
     'med referensnumret 123dinmamma.'
 
-  saldos.forEach(async (user) => {
-    const current_saldo = await getBalanceForMember(user.userId)
-    if (Number(current_saldo) < 0) {
-      //&& String(user.userId) === '55244162') {
+  for (const { user_id, balance } of balances) {
+    const message = stringTemplate.replace('{saldo}', String(balance.toFixed(2)))
+
+    if (balance < 0 && String(user_id) === '55244162') {
       ctx.telegram.sendMessage(
-        user.userId,
-        stringTemplate.replace('{saldo}', current_saldo)
+        user_id,
+        message,
+        { parse_mode: 'HTML' }
       )
     }
-  })
+  }
 })
 
 //endregion
 
-//Dehä toimii lika bra som de ut kommenterade verkar de som
-export default bot
 
-// export default Composer.compose([
-//   exportCommand,
-//   allHistoryCommand,
-//   saldoTemplateCommand,
-//   saldoUploadCommand,
-// ])
+export default bot

@@ -52,6 +52,20 @@ export const getBalanceForMember = async (userId: number) => {
   }
 }
 
+export const getAllBalances = async (): Promise<
+  { user_id: string; balance: number }[]
+> => {
+  const res = await pool.query(
+    `--sql  
+    SELECT user_id, SUM (amount_cents) AS balance  
+    FROM transactions  
+    GROUP BY user_id`
+  )
+  return res.rows.map((row) => {
+    return { user_id: row.user_id, balance: Number(row.balance) / 100 }
+  })
+}
+
 export const exportTransactions = async (): Promise<
   QueryResult<Transaction>
 > => {
