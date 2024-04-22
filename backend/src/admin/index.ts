@@ -17,15 +17,17 @@ const adminMiddleware = bot.use(async (ctx, next) => {
 })
 
 bot.command('admin', async (ctx) => {
-  const admin_message =
-    'Följande admin kommandon existerar:\n' +
-    '/add_product För att lägga till en produkt\n' +
-    '/edit_product För att ändra en produkt\n' +
-    '/delete_product För att ta bort en produkt\n' +
-    '/exportera CSV-dump av alla transaktioner\n' +
-    '/historia_all Se de senaste händelserna för alla användare\n' +
-    '/saldo_upload För att lägga till transaktioner manuellt\n' +
-    '/shame Skickar ett meddelande till alla med negativ saldo som påminner dem att betala.'
+  const admin_message = [
+    'Följande admin kommandon existerar:',
+    '/add_product För att lägga till en produkt',
+    '/edit_product För att ändra en produkt',
+    '/delete_product För att ta bort en produkt',
+    '/exportera CSV-dump av alla transaktioner',
+    '/historia_all Se de senaste händelserna för alla användare',
+    '/saldo_all Se alal användares saldo',
+    '/saldo_upload För att lägga till transaktioner manuellt',
+    '/shame Skickar ett meddelande till alla med negativ saldo som påminner dem att betala. Lägg till _<nummer> för att endast pinga folk under -<nummer>.',
+  ].join('\n')
   return ctx.reply(admin_message)
 })
 

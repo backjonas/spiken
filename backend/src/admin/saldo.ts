@@ -6,12 +6,28 @@ import {
   getAllBalances,
   purchaseItemForMember,
 } from '../transactions.js'
-import { createCsv, formatName, formatTransaction } from '../utils.js'
+import { createCsv, formatTransaction } from '../utils.js'
 import { config } from '../config.js'
 import { ContextWithScenes } from './scene.js'
-import { Chat } from 'telegraf/typings/core/types/typegram.js'
+
+//#region Misc
 
 const bot = new Composer<ContextWithScenes>()
+
+const account_details = {
+  number: 'FI35 7997 7991 8699 54',
+  name: 'Understödsföreningen för Teknologisk verksamhet rf',
+  ref: '20239',
+}
+const formattedAccountString =
+  `<pre>Mottagare:${account_details.name}\n` +
+  `Kontonummer: ${account_details.number}\n` +
+  `Reference nummer: ${account_details.ref}\n` +
+  '</pre>'
+
+//endregion
+
+//#region Export
 
 const exportCommand = bot.command('exportera', async (ctx) => {
   const res = await exportTransactions()
@@ -21,6 +37,9 @@ const exportCommand = bot.command('exportera', async (ctx) => {
     filename: `spiken-dump-${new Date().toISOString()}.csv`,
   })
 })
+
+//endregion
+
 //#region Historia all
 
 const allHistoryCommand = bot.command('historia_all', async (ctx) => {
@@ -41,6 +60,23 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
     '```'
 
   return ctx.reply(historyString, { parse_mode: 'Markdown' })
+})
+
+//endregion
+
+//#region Saldo all
+
+const allSaldoCommand = bot.command('saldo_all', async (ctx) => {
+  const balances = (await getAllBalances()).sort(
+    (a, b) => b.balance - a.balance
+  )
+
+  const historyString =
+    `User saldos:<pre>` +
+    balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
+    '</pre>'
+
+  return ctx.reply(historyString, { parse_mode: 'HTML' })
 })
 
 //endregion
@@ -205,47 +241,29 @@ const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
 const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
   const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
 
-  const balances = await getAllBalances()
+  const balances = (await getAllBalances()).filter(
+    (obj) => obj.balance < -saldoCutOff
+  )
 
-  const stringTemplate =
-    'Ditt saldo e nu <b>{saldo}€</b>, borde du kanske betala?' +
-    '\nDu kan betala genom att skicka en summa till kontonumret FI 123 123' +
-    'med referensnumret 123dinmamma.'
-
-  var pingedUsers: { user_id: string; balance: number }[] = []
-
-  for (const { user_id, balance } of balances) {
-    const message = stringTemplate.replace(
-      '{saldo}',
-      String(balance.toFixed(2))
-    )
-
-    if (balance <= -saldoCutOff) {
-      pingedUsers.push({ user_id, balance })
-      ctx.telegram.sendMessage(user_id, message, { parse_mode: 'HTML' })
-    }
+  for await (const { userId, balance } of balances) {
+    const message =
+      `Ert saldo är nu <b>${balance.toFixed(
+        2
+      )}€</b>. Det skulle vara att föredra att Ert saldo hålls positivt. ` +
+      `Ni kan betala in på Er spik genom att skicka en summa, dock helst minst ${balance.toFixed(
+        2
+      )}, till följande konto: ` +
+      formattedAccountString
+    await ctx.telegram.sendMessage(userId, message, {
+      parse_mode: 'HTML',
+    })
   }
 
-  if (pingedUsers.length > 0) {
-    var adminMessage = `The following users were pinged with a cut-off of -${saldoCutOff}:<pre>`
-
-    // Map pingedUsers to an array of promises
-    const chatPromises = pingedUsers.map(async ({ user_id, balance }) => {
-      const chatPromise = (await ctx.telegram.getChat(
-        user_id
-      )) as Chat.PrivateGetChat
-      return { chat: chatPromise, balance }
-    })
-
-    // Wait for all promises to resolve
-    const resolvedChats = await Promise.all(chatPromises)
-
-    resolvedChats.forEach(({ chat, balance }) => {
-      const name = formatName(chat)
-      adminMessage += `${name}: ${balance}€\n`
-    })
-
-    adminMessage += '</pre>'
+  if (balances.length > 0) {
+    const adminMessage =
+      `The following users were pinged with a cut-off of -${saldoCutOff}€:<pre>` +
+      balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
+      '</pre>'
     ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
       parse_mode: 'HTML',
     })
