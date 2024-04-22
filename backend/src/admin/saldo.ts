@@ -48,6 +48,7 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
   const historyString =
     '```' +
     history.rows
+      .sort((a, b) => a.created_at.getTime() - b.created_at.getTime())
       .map((row) =>
         formatTransaction(
           row.user_name,

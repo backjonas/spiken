@@ -168,15 +168,16 @@ products.forEach(({ name, description, price_cents }) => {
 bot.command('historia', async (ctx) => {
   const history = await exportTransactionsForOneUser(ctx.from.id, 30)
 
-  const parsedHistory = history.rows.map(
-    ({ created_at, description, amount_cents }) => {
+  const parsedHistory = history.rows
+    .map(({ created_at, description, amount_cents }) => {
       return {
         created_at,
         description,
         amount_cents,
       }
-    }
-  )
+    })
+    .sort((a, b) => a.created_at.getTime() - b.created_at.getTime())
+
   const saldo = await getBalanceForMember(ctx.from.id)
   var res = `Ditt nuvarande saldo är ${saldo}. Här är din historia:\`\`\``
   parsedHistory.forEach((row) => {
