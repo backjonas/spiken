@@ -251,9 +251,9 @@ const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
       `Ert saldo är nu <b>${balance.toFixed(
         2
       )}€</b>. Det skulle vara att föredra att Ert saldo hålls positivt. ` +
-      `Ni kan betala in på Er spik genom att skicka en summa, dock helst minst ${balance.toFixed(
+      `Ni kan betala in på Er spik genom att skicka en summa, dock helst minst ${-balance.toFixed(
         2
-      )}, till följande konto: ` +
+      )}€, till följande konto: ` +
       formattedAccountString
     await ctx.telegram.sendMessage(userId, message, {
       parse_mode: 'HTML',
