@@ -22,7 +22,7 @@ const account_details = {
 const formattedAccountString =
   `<pre>Mottagare:${account_details.name}\n` +
   `Kontonummer: ${account_details.number}\n` +
-  `Reference nummer: ${account_details.ref}\n` +
+  `Referensnummer: ${account_details.ref}\n` +
   '</pre>'
 
 //endregion
@@ -262,7 +262,7 @@ const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
 
   if (balances.length > 0) {
     const adminMessage =
-      `The following users were pinged with a cut-off of -${saldoCutOff}€:<pre>` +
+      `Följande användare pingades med en cut-off av -${saldoCutOff}€:<pre>` +
       balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
       '</pre>'
     ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
