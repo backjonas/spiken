@@ -1,3 +1,4 @@
+import { Markup } from 'telegraf'
 import { QueryResult } from 'pg'
 
 export const createCsv = (queryResult: QueryResult<any>) => {
@@ -84,3 +85,8 @@ export const formatTransaction = (
     `${description}`
   )
 }
+
+export const confirmOrAbortButton = Markup.inlineKeyboard([
+  Markup.button.callback('Godkänn', 'confirm'),
+  Markup.button.callback('Avbryt', 'abort'),
+])
