@@ -22,7 +22,7 @@ import {
 
 /*
 Toiveiden tynnyri:
-- En 'vapaa myynti' command med description och summa
+- Tyhjä
 */
 
 const bot = new Telegraf<ContextWithScenes>(config.botToken)
@@ -269,7 +269,6 @@ const buyOtherScene = new Scenes.WizardScene<ContextWithScenes>(
 
         const customBuy = ctx.scene.session.customBuy
         confirmOrAbortReplyForCustomBuy(ctx, customBuy)
-        console.log(ctx.scene.session.customBuy)
         return ctx.wizard.next()
       } catch (e) {
         console.log('Error found: ', e)
@@ -289,6 +288,13 @@ const buyOtherScene = new Scenes.WizardScene<ContextWithScenes>(
             description: customBuy.description,
             amountCents: customBuy.priceCents,
           })
+
+          const adminMessage =
+            `Användare ${formatName(ctx.from!)} köpte custom produkt:\n` +
+            `\t\t\tVad: ${customBuy.description}\n` +
+            `\t\t\tPris: ${formatCentsToEuroString(-customBuy.priceCents)}\n`
+
+          ctx.telegram.sendMessage(config.adminChatId, adminMessage)
         } catch (e) {
           console.log('Failed to purchase item:', e)
           ctx.reply('Köpet misslyckades, klaga till croupieren')
