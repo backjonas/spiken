@@ -14,15 +14,10 @@ import { ContextWithScenes } from './scene.js'
 
 const bot = new Composer<ContextWithScenes>()
 
-const account_details = {
-  number: 'FI35 7997 7991 8699 54',
-  name: 'Understödsföreningen för Teknologisk verksamhet rf',
-  ref: '20239',
-}
 const formattedAccountString =
-  `<pre>Mottagare:${account_details.name}\n` +
-  `Kontonummer: ${account_details.number}\n` +
-  `Referensnummer: ${account_details.ref}\n` +
+  `<pre>Mottagare:${config.bankAccount.name}\n` +
+  `Kontonummer: ${config.bankAccount.number}\n` +
+  `Referensnummer: ${config.bankAccount.ref}\n` +
   '</pre>'
 
 //endregion

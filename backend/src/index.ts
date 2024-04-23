@@ -21,10 +21,7 @@ import {
 
 /*
 Toiveiden tynnyri:
-- Admin interface, lägg till/ta bort saldo
-- Skamlistan, posta alla med negativt i chatten med en @
 - En 'vapaa myynti' command med description och summa
-- "Undo" funktionalitet
 */
 
 const bot = new Telegraf<ContextWithScenes>(config.botToken)
