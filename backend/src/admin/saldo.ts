@@ -15,7 +15,8 @@ import { ContextWithScenes } from './scene.js'
 const bot = new Composer<ContextWithScenes>()
 
 const formattedAccountString =
-  `<pre>Mottagare:${config.bankAccount.name}\n` +
+  '<pre>' +
+  `Mottagare: ${config.bankAccount.name}\n` +
   `Kontonummer: ${config.bankAccount.number}\n` +
   `Referensnummer: ${config.bankAccount.ref}\n` +
   '</pre>'
