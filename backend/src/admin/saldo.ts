@@ -3,13 +3,27 @@ import { parse } from 'csv-parse/sync'
 import {
   exportTransactions,
   exportTransactionTemplate,
+  getAllBalances,
   purchaseItemForMember,
 } from '../transactions.js'
 import { createCsv, formatTransaction } from '../utils.js'
 import { config } from '../config.js'
 import { ContextWithScenes } from './scene.js'
 
+//#region Misc
+
 const bot = new Composer<ContextWithScenes>()
+
+const formattedAccountString =
+  '<pre>' +
+  `Mottagare: ${config.bankAccount.name}\n` +
+  `Kontonummer: ${config.bankAccount.number}\n` +
+  `Referensnummer: ${config.bankAccount.ref}\n` +
+  '</pre>'
+
+//endregion
+
+//#region Export
 
 const exportCommand = bot.command('exportera', async (ctx) => {
   const res = await exportTransactions()
@@ -20,12 +34,17 @@ const exportCommand = bot.command('exportera', async (ctx) => {
   })
 })
 
+//endregion
+
+//#region Historia all
+
 const allHistoryCommand = bot.command('historia_all', async (ctx) => {
   const history = await exportTransactions()
 
   const historyString =
     '```' +
     history.rows
+      .sort((a, b) => a.created_at.getTime() - b.created_at.getTime())
       .map((row) =>
         formatTransaction(
           row.user_name,
@@ -40,6 +59,26 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
   return ctx.reply(historyString, { parse_mode: 'Markdown' })
 })
 
+//endregion
+
+//#region Saldo all
+
+const allSaldoCommand = bot.command('saldo_all', async (ctx) => {
+  const balances = (await getAllBalances()).sort(
+    (a, b) => b.balance - a.balance
+  )
+
+  const historyString =
+    `User saldos:<pre>` +
+    balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
+    '</pre>'
+
+  return ctx.reply(historyString, { parse_mode: 'HTML' })
+})
+
+//endregion
+
+//#region Manual saldo update
 const saldoTemplateCommand = bot.command('saldo_template', async (ctx) => {
   const csv = createCsv(await exportTransactionTemplate())
   ctx.replyWithDocument({
@@ -187,9 +226,47 @@ const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
   await ctx.scene.enter('saldo_upload_scene')
 })
 
-export default Composer.compose([
-  exportCommand,
-  allHistoryCommand,
-  saldoTemplateCommand,
-  saldoUploadCommand,
-])
+//endregion
+
+//#region Shame
+
+/**
+ * The command sends a message to each user that has a saldo lower than the cut-off with a default cut-off of 0.
+ * I.e sending `/shame` will send a message to all users with negative score,
+ * while ending `shame_20` will send a message to all users with a balance of less than -20.
+ */
+const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
+  const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
+
+  const balances = (await getAllBalances()).filter(
+    (obj) => obj.balance < -saldoCutOff
+  )
+
+  for await (const { userId, balance } of balances) {
+    const message =
+      `Ert saldo är nu <b>${balance.toFixed(
+        2
+      )}€</b>. Det skulle vara att föredra att Ert saldo hålls positivt. ` +
+      `Ni kan betala in på Er spik genom att skicka en summa, dock helst minst ${-balance.toFixed(
+        2
+      )}€, till följande konto: ` +
+      formattedAccountString
+    await ctx.telegram.sendMessage(userId, message, {
+      parse_mode: 'HTML',
+    })
+  }
+
+  if (balances.length > 0) {
+    const adminMessage =
+      `Följande användare pingades med en cut-off av -${saldoCutOff}€:<pre>` +
+      balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
+      '</pre>'
+    ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
+      parse_mode: 'HTML',
+    })
+  }
+})
+
+//endregion
+
+export default bot
