@@ -200,7 +200,7 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'confirm') {
         const transactions = ctx.scene.session.transactions
-        for (const t of transactions) {
+        for await (const t of transactions) {
           await purchaseItemForMember(t)
         }
         ctx.scene.leave()
