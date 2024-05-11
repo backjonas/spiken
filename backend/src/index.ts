@@ -30,7 +30,7 @@ const bot = new Telegraf<ContextWithScenes>(config.botToken)
 const info_message = `Hej, välkommen till STF spik bot!
 Här kan du köra köp och kolla ditt saldo.
 Du hittar alla commandon under "Menu" med beskrivning.
-Märk att du inte kan ångra ett köp, så var aktsam!
+Märk att du kan endast ångra de senaste köpet, så var aktsam!
 Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
 Oss väl och ingen illa!`
 
@@ -272,6 +272,10 @@ const buyOtherScene = new Scenes.WizardScene<ContextWithScenes>(
         return ctx.wizard.next()
       } catch (e) {
         console.log('Error found: ', e)
+        ctx.reply(
+          'Ett oväntat fel har inträffat. Pröva igen och/eller kontakta croupiären!'
+        )
+        return ctx.scene.leave()
       }
     }
   },
@@ -339,7 +343,7 @@ function confirmOrAbortReplyForCustomBuy(
 const stage = new Scenes.Stage([buyOtherScene])
 bot.use(stage.middleware())
 
-const buyOtherCommand = bot.command('kop_ovrigt', async (ctx) => {
+bot.command('kop_ovrigt', async (ctx) => {
   await ctx.scene.enter('buy_other_scene')
 })
 
