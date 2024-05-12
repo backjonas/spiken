@@ -24,7 +24,7 @@ bot.command('admin', async (ctx) => {
     '/delete_product För att ta bort en produkt',
     '/exportera CSV-dump av alla transaktioner',
     '/historia_all Se de senaste händelserna för alla användare',
-    '/saldo_all Se alal användares saldo',
+    '/saldo_all Se alla användares saldo',
     '/saldo_upload För att lägga till transaktioner manuellt',
     '/shame Skickar ett meddelande till alla med negativ saldo som påminner dem att betala. Lägg till _<nummer> för att endast pinga folk under -<nummer>.',
   ].join('\n')

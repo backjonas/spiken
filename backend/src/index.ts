@@ -11,7 +11,6 @@ import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
 import { productsToArray } from './admin/product.js'
 import { ContextWithScenes } from './scene.js'
-import productCommands from './admin/product.js'
 import {
   centsToEuroString as formatCentsToEuroString,
   confirmOrAbortButton,
@@ -20,19 +19,7 @@ import {
   formatName,
 } from './utils.js'
 
-/*
-Toiveiden tynnyri:
-- Tyhjä
-*/
-
 const bot = new Telegraf<ContextWithScenes>(config.botToken)
-
-const info_message = `Hej, välkommen till STF spik bot!
-Här kan du köra köp och kolla ditt saldo.
-Du hittar alla commandon under "Menu" med beskrivning.
-Märk att du kan endast ångra de senaste köpet, så var aktsam!
-Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
-Oss väl och ingen illa!`
 
 bot.use(async (ctx, next) => {
   if (!ctx.from) {
@@ -52,11 +39,7 @@ bot.use(async (ctx, next) => {
 })
 
 bot.use(session())
-// addAdminCommands(bot)
 
-// bot.use(admin middleware)
-// bot.command...
-bot.use(productCommands)
 //endregion
 
 //#region Products
@@ -357,11 +340,11 @@ bot.command('saldo', async (ctx) => {
 })
 
 bot.command('info', async (ctx) => {
-  return ctx.reply(info_message)
+  return ctx.reply(config.infoMessage)
 })
 
 bot.command('start', async (ctx) => {
-  return ctx.reply(info_message)
+  return ctx.reply(config.infoMessage)
 })
 
 bot.telegram.setMyCommands([
