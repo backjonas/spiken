@@ -9,8 +9,8 @@ import {
   getProductById,
   getProducts,
 } from '../products.js'
-import { formatButtonArray } from '../utils.js'
-import { ContextWithScenes } from './scene.js'
+import { confirmOrAbortButton, formatButtonArray } from '../utils.js'
+import { ContextWithScenes } from '../scene.js'
 
 const bot = new Composer<ContextWithScenes>()
 
@@ -142,6 +142,7 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      ctx.editMessageReplyMarkup(undefined)
       const decision = ctx.callbackQuery.data
       if (decision === 'confirm') {
         const product = {
@@ -214,6 +215,7 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      ctx.editMessageReplyMarkup(undefined)
       const productId = Number(ctx.callbackQuery.data)
       ctx.scene.session.product = (await getProductById(productId)).rows[0]
       ctx.reply(
@@ -229,6 +231,7 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'skip') {
+        ctx.editMessageReplyMarkup(undefined)
         ctx.reply(
           `Produktens nya beskrivning? Nu har den beskrviningen "${ctx.scene.session.product.description}"`,
           {
@@ -254,6 +257,7 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'skip') {
+        ctx.editMessageReplyMarkup(undefined)
         ctx.reply(
           `Produktens nya pris (i positiva cent)? Nu är det ${-ctx.scene.session
             .product.price_cents}`,
@@ -281,6 +285,7 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       if (ctx.callbackQuery.data === 'skip') {
+        ctx.editMessageReplyMarkup(undefined)
         const updatedProduct = ctx.scene.session.product
         await confirmOrAbortButtonForEdit(ctx, updatedProduct)
 
@@ -305,6 +310,7 @@ const editProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      ctx.editMessageReplyMarkup(undefined)
       const decision = ctx.callbackQuery.data
       if (decision === 'confirm') {
         try {
@@ -338,9 +344,9 @@ async function confirmOrAbortButtonForEdit(
   const originalProduct = (await getProductById(product.id)).rows[0]
   ctx.reply(
     `Följande product kommer att uppdateras:\n` +
-      `\t${originalProduct.name} --> ${product.name}\n` +
-      `\t${originalProduct.description} --> ${product.description}\n` +
-      `\t${-originalProduct.price_cents} --> ${-product.price_cents}\n`,
+      `\t\t\tKommando: ${originalProduct.name} --> ${product.name}\n` +
+      `\t\t\tFörklaring: ${originalProduct.description} --> ${product.description}\n` +
+      `\t\t\tPris: ${-originalProduct.price_cents} --> ${-product.price_cents}\n`,
     {
       ...confirmOrAbortButton,
     }
@@ -350,11 +356,6 @@ async function confirmOrAbortButtonForEdit(
 //#endregion
 
 //#region Misc & Export
-
-const confirmOrAbortButton = Markup.inlineKeyboard([
-  Markup.button.callback('Godkänn', 'confirm'),
-  Markup.button.callback('Avbryt', 'abort'),
-])
 
 const stage = new Scenes.Stage([addProductScene, editProductScene])
 bot.use(stage.middleware())

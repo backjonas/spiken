@@ -1,5 +1,5 @@
 //#region Imports & Init
-import { Context, Markup, Telegraf, session } from 'telegraf'
+import { Context, Markup, Telegraf, session, Scenes } from 'telegraf'
 import { config } from './config.js'
 import {
   TransactionInsert,
@@ -10,10 +10,11 @@ import {
 import { Message, Update } from '@telegraf/types'
 import adminCommands from './admin/index.js'
 import { productsToArray } from './admin/product.js'
-import { ContextWithScenes } from './admin/scene.js'
+import { ContextWithScenes } from './scene.js'
 import productCommands from './admin/product.js'
 import {
-  centsToEuroString,
+  centsToEuroString as formatCentsToEuroString,
+  confirmOrAbortButton,
   formatButtonArray,
   formatDateToString,
   formatName,
@@ -21,7 +22,7 @@ import {
 
 /*
 Toiveiden tynnyri:
-- En 'vapaa myynti' command med description och summa
+- Tyhjä
 */
 
 const bot = new Telegraf<ContextWithScenes>(config.botToken)
@@ -29,7 +30,7 @@ const bot = new Telegraf<ContextWithScenes>(config.botToken)
 const info_message = `Hej, välkommen till STF spik bot!
 Här kan du köra köp och kolla ditt saldo.
 Du hittar alla commandon under "Menu" med beskrivning.
-Märk att du inte kan ångra ett köp, så var aktsam!
+Märk att du kan endast ångra de senaste köpet, så var aktsam!
 Ifall något underligt sker ska du vara i kontakt med Croupiären!\n
 Oss väl och ingen illa!`
 
@@ -180,7 +181,7 @@ bot.command('historia', async (ctx) => {
   parsedHistory.forEach((row) => {
     res +=
       `\n${formatDateToString(row.created_at, true)}, ` +
-      `${centsToEuroString(-row.amount_cents)}, ` +
+      `${formatCentsToEuroString(-row.amount_cents)}, ` +
       `${row.description}`
   })
   res += '```'
@@ -220,7 +221,7 @@ bot.command('undo', async (ctx) => {
       'Följande transaktion har ångrats: \n' +
       `\t\tTid: ${formatDateToString(latestTransaction.created_at, true)}\n` +
       `\t\tProdukt: ${latestTransaction.description}\n` +
-      `\t\tPris: ${centsToEuroString(latestTransaction.amount_cents)}`
+      `\t\tPris: ${formatCentsToEuroString(latestTransaction.amount_cents)}`
 
     ctx.reply(message)
     console.log(
@@ -232,6 +233,118 @@ bot.command('undo', async (ctx) => {
       `User id ${ctx.from.id} tried to undo a transaction and faced the following problem error: ${e}`
     )
   }
+})
+
+//endregion
+
+//#region Custom buy
+const buyOtherScene = new Scenes.WizardScene<ContextWithScenes>(
+  'buy_other_scene',
+  async (ctx) => {
+    ctx.reply('Vad är de du vill köpa?')
+    ctx.scene.session.customBuy = {
+      description: '',
+      priceCents: '',
+    }
+    return ctx.wizard.next()
+  },
+  async (ctx) => {
+    if (ctx.message && 'text' in ctx.message) {
+      ctx.scene.session.customBuy.description = ctx.message.text
+      ctx.reply('Produktens pris (i positiva cent)?')
+      return ctx.wizard.next()
+    } else {
+      ctx.reply('Du måst skriva en text')
+    }
+  },
+  async (ctx) => {
+    if (ctx.message && 'text' in ctx.message) {
+      try {
+        if (isNaN(Number(ctx.message.text)) || Number(ctx.message.text) < 0) {
+          return ctx.reply(
+            'Priset måste vara ett positivt tal, det läggs sedan in i databasen som negativt!'
+          )
+        }
+        ctx.scene.session.customBuy.priceCents = `-` + ctx.message.text
+
+        const customBuy = ctx.scene.session.customBuy
+        confirmOrAbortReplyForCustomBuy(ctx, customBuy)
+        return ctx.wizard.next()
+      } catch (e) {
+        console.log('Error found: ', e)
+        ctx.reply(
+          'Ett oväntat fel har inträffat. Pröva igen och/eller kontakta croupiären!'
+        )
+        return ctx.scene.leave()
+      }
+    }
+  },
+  async (ctx) => {
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      ctx.editMessageReplyMarkup(undefined)
+      const decision = ctx.callbackQuery.data
+      if (decision === 'confirm') {
+        try {
+          const customBuy = ctx.scene.session.customBuy
+          await purchaseItemForMember({
+            userId: ctx.from!.id,
+            userName: formatName({ ...ctx.from! }),
+            description: customBuy.description,
+            amountCents: customBuy.priceCents,
+          })
+
+          const adminMessage =
+            `Användare ${formatName(ctx.from!)} köpte custom produkt:\n` +
+            `\t\t\tVad: ${customBuy.description}\n` +
+            `\t\t\tPris: ${formatCentsToEuroString(-customBuy.priceCents)}\n`
+
+          ctx.telegram.sendMessage(config.adminChatId, adminMessage)
+        } catch (e) {
+          console.log('Failed to purchase item:', e)
+          ctx.reply('Köpet misslyckades, klaga till croupieren')
+        }
+        try {
+          const balance = await getBalanceForMember(ctx.from!.id)
+          ctx.reply(`Köpet lyckades! Ditt saldo är nu ${balance}€`)
+        } catch (e) {
+          console.log('Failed to get balance:', e)
+          ctx.reply(
+            'Köpet lyckades, men kunde inte hämta saldo. Klaga till croupieren'
+          )
+        }
+        return ctx.scene.leave()
+      } else if (decision === 'abort') {
+        ctx.reply('Köpet avbrutet.')
+        return ctx.scene.leave()
+      }
+    } else {
+      ctx.reply('Du måst trycka på endera alternativ')
+    }
+  }
+)
+
+function confirmOrAbortReplyForCustomBuy(
+  ctx: ContextWithScenes,
+  customBuy: {
+    description: string
+    priceCents: string
+  }
+) {
+  ctx.reply(
+    `Följande inköp kommer att läggas till åt Er:\n` +
+      `\t\t\tVad: ${customBuy.description}\n` +
+      `\t\t\tPris: ${formatCentsToEuroString(-customBuy.priceCents)}\n`,
+    {
+      ...confirmOrAbortButton,
+    }
+  )
+}
+
+const stage = new Scenes.Stage([buyOtherScene])
+bot.use(stage.middleware())
+
+bot.command('kop_ovrigt', async (ctx) => {
+  await ctx.scene.enter('buy_other_scene')
 })
 
 //endregion
@@ -258,11 +371,15 @@ bot.telegram.setMyCommands([
       Number(price_cents) / -100
     ).toFixed(2)}€`,
   })),
-  { command: 'saldo', description: 'Kontrollera saldo' },
-  { command: 'info', description: 'Visar information om bottens användning' },
   { command: 'meny', description: 'Tar upp köp menyn för alla produkter' },
+  {
+    command: 'kop_ovrigt',
+    description: 'Köp något som inte finns bland nuvarande producter',
+  },
+  { command: 'saldo', description: 'Kontrollera saldo' },
   { command: 'historia', description: 'Se din egna transaktionshistorik' },
   { command: 'undo', description: 'Ångra ditt senaste köp' },
+  { command: 'info', description: 'Visar information om bottens användning' },
 ])
 
 // Admin middleware is used for all commands added after this line!

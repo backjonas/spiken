@@ -14,9 +14,9 @@ export const config = {
   botToken: typedProcessEnv.BOT_TOKEN,
   chatId: typedProcessEnv.CHAT_ID,
   adminChatId: typedProcessEnv.ADMIN_CHAT_ID,
-  bankAccount : {
+  bankAccount: {
     number: typedProcessEnv.BANK_ACCOUNT_NUMMER,
     name: typedProcessEnv.BANK_ACCOUNT_NAME,
     ref: typedProcessEnv.BANK_ACCOUNT_REF,
-  }
+  },
 }

@@ -8,7 +8,7 @@ import {
 } from '../transactions.js'
 import { createCsv, formatTransaction } from '../utils.js'
 import { config } from '../config.js'
-import { ContextWithScenes } from './scene.js'
+import { ContextWithScenes } from '../scene.js'
 
 //#region Misc
 
