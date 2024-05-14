@@ -25,7 +25,7 @@ const formattedAccountString =
 
 //#region Export
 
-const exportCommand = bot.command('exportera', async (ctx) => {
+bot.command('exportera', async (ctx) => {
   const res = await exportTransactions()
   const csv = createCsv(res)
   ctx.replyWithDocument({
@@ -38,7 +38,7 @@ const exportCommand = bot.command('exportera', async (ctx) => {
 
 //#region Historia all
 
-const allHistoryCommand = bot.command('historia_all', async (ctx) => {
+bot.command('historia_all', async (ctx) => {
   const history = await exportTransactions()
 
   const historyString =
@@ -63,7 +63,7 @@ const allHistoryCommand = bot.command('historia_all', async (ctx) => {
 
 //#region Saldo all
 
-const allSaldoCommand = bot.command('saldo_all', async (ctx) => {
+bot.command('saldo_all', async (ctx) => {
   const balances = (await getAllBalances()).sort(
     (a, b) => b.balance - a.balance
   )
@@ -79,7 +79,7 @@ const allSaldoCommand = bot.command('saldo_all', async (ctx) => {
 //endregion
 
 //#region Manual saldo update
-const saldoTemplateCommand = bot.command('saldo_template', async (ctx) => {
+bot.command('saldo_template', async (ctx) => {
   const csv = createCsv(await exportTransactionTemplate())
   ctx.replyWithDocument({
     source: Buffer.from(csv, 'utf-8'),
@@ -222,7 +222,7 @@ saldoUploadScene.command('exit', async (ctx) => {
 const stage = new Scenes.Stage([saldoUploadScene])
 bot.use(stage.middleware())
 
-const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
+bot.command('saldo_upload', async (ctx) => {
   await ctx.scene.enter('saldo_upload_scene')
 })
 
@@ -235,7 +235,7 @@ const saldoUploadCommand = bot.command('saldo_upload', async (ctx) => {
  * I.e sending `/shame` will send a message to all users with negative score,
  * while ending `shame_20` will send a message to all users with a balance of less than -20.
  */
-const shameCommand = bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
+bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
   const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
 
   const balances = (await getAllBalances()).filter(

@@ -100,7 +100,7 @@ const deleteCommandAbort = bot.action(
 const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   'add_product_scene',
   async (ctx) => {
-    ctx.reply('Produkt namn? (Blir automatisk små bokstäver)')
+    ctx.reply('Produktens namn? Endast a-z & 0-9 är tillåtna')
     ctx.scene.session.newProduct = {
       name: '',
       description: '',
@@ -110,8 +110,10 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.message && 'text' in ctx.message) {
-      ctx.scene.session.newProduct.name = ctx.message.text.toLowerCase()
-      ctx.reply('Produkt beskrivning?')
+      ctx.scene.session.newProduct.name = ctx.message.text
+        .replace(/[\W_]+/g, '')
+        .toLowerCase()
+      ctx.reply('Produktens beskrivning?')
       return ctx.wizard.next()
     } else {
       ctx.reply('Du måst skriva en text')
@@ -128,7 +130,7 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
   },
   async (ctx) => {
     if (ctx.message && 'text' in ctx.message) {
-      if (Number(ctx.message.text) < 0) {
+      if (Number(ctx.message.text) < 0 || isNaN(Number(ctx.message.text))) {
         return ctx.reply(
           'Priset måste vara positivt, det läggs sedan in i databasen som negativt!'
         )
@@ -158,7 +160,10 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
               `description:"${ctx.scene.session.newProduct.description}"\n` +
               `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`
           )
-          ctx.reply('Produkten har lagts till!')
+          ctx.reply(
+            'Produkten har lagts till!\n' +
+              'För att den nya produkten ska synas i menyn måste botten startas om.'
+          )
         } catch (e) {
           console.log(
             'The following product could not be added:\n' +
