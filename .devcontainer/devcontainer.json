@@ -33,7 +33,7 @@
 			},
 			"editor.formatOnSave": true
 		}
-	}
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -42,7 +42,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
+	"postCreateCommand": "npm i"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
