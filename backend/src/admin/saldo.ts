@@ -39,7 +39,7 @@ bot.command('exportera', async (ctx) => {
 //#region Historia all
 
 bot.command('historia_all', async (ctx) => {
-  const history = await exportTransactions()
+  const history = await exportTransactions(30)
 
   const historyString =
     '```' +
