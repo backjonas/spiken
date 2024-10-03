@@ -73,15 +73,16 @@ export const getAllBalances = async (): Promise<
   })
 }
 
-export const exportTransactions = async (): Promise<
-  QueryResult<Transaction>
-> => {
+export const exportTransactions = async (
+  limit: number | undefined = undefined
+): Promise<QueryResult<Transaction>> => {
   return await pool.query(
     `--sql
       SELECT *
       FROM transactions
       ORDER BY created_at DESC
-      LIMIT 30`
+      LIMIT $1`,
+    [limit]
   )
 }
 
