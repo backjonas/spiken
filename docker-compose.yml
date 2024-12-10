@@ -5,7 +5,7 @@ services:
     container_name: spikenbot
     build: .
     restart: on-failure
-    env_file: .env
+    env_file: .env.docker
     depends_on:
       - db
     networks:
