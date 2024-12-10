@@ -241,8 +241,8 @@ bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
   const balances = (await getAllBalances()).filter(
     (obj) => obj.balance < -saldoCutOff
   )
-
-  for await (const { userId, balance } of balances) {
+  var problem_cases = []
+  for await (const { userId, balance, userName } of balances) {
     const message =
       `Ert saldo är nu <b>${balance.toFixed(
         2
@@ -251,16 +251,27 @@ bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
         2
       )}€, till följande konto: ` +
       formattedAccountString
-    await ctx.telegram.sendMessage(userId, message, {
-      parse_mode: 'HTML',
-    })
+      try {
+        await ctx.telegram.sendMessage(userId, message, {
+          parse_mode: 'HTML',
+        })
+      } catch (error) {
+        console.log(`User "${userName}" has probably not started a chat with the bot`, error)
+        problem_cases.push(userName)
+      }
+
   }
 
   if (balances.length > 0) {
-    const adminMessage =
+    var adminMessage =
       `Följande användare pingades med en cut-off av -${saldoCutOff}€:<pre>` +
       balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
       '</pre>'
+      if (problem_cases.length > 0){
+        adminMessage += `\nFöljande användare kunde inte pingas:<pre>` +
+        balances.map((userName) => `${userName}`).join('\n') +
+      '</pre>'
+      }
     ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
       parse_mode: 'HTML',
     })
