@@ -2,9 +2,10 @@
 FROM node:18.16-alpine3.18 AS builder
 WORKDIR /app
 
-COPY package-lock.json backend/package.json ./
+COPY package-lock.json package.json ./
 RUN npm ci
-COPY backend ./
+COPY tsconfig.json ./
+COPY src ./src
 RUN npm run build
 
 FROM node:18.16-alpine3.18 AS runner
