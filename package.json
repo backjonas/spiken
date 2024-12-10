@@ -1,15 +1,27 @@
 {
-  "name": "spiken",
+  "name": "spiken-backend",
   "version": "1.0.0",
   "description": "",
-  "workspaces": [
-    "backend",
-    "db"
-  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm run start --workspaces"
+    "start": "tsc-watch --onSuccess \"node build/index.js\"",
+    "build": "tsc --build"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.8.4",
+    "@types/pg": "^8.10.5",
+    "prettier": "3.0.3",
+    "tsc-watch": "^6.0.4",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.5",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "telegraf": "^4.14.0",
+    "zod": "^3.22.4"
+  }
 }
