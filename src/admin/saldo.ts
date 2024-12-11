@@ -241,7 +241,7 @@ bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
   const balances = (await getAllBalances()).filter(
     (obj) => obj.balance < -saldoCutOff
   )
-  var problem_cases = []
+  const problem_cases = []
   for await (const { userId, balance, userName } of balances) {
     const message =
       `Ert saldo är nu <b>${balance.toFixed(
