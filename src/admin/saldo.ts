@@ -269,7 +269,7 @@ bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
       '</pre>'
       if (problem_cases.length > 0){
         adminMessage += `\nFöljande användare kunde inte pingas:<pre>` +
-        balances.map((userName) => `${userName}`).join('\n') +
+        problem_cases.map((userName) => `${userName}`).join('\n') +
       '</pre>'
       }
     ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
