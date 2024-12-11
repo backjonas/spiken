@@ -347,7 +347,7 @@ bot.command('info', async (ctx) => {
 })
 
 bot.command('start', async (ctx) => {
-  return ctx.reply(formattedInfoString)
+  return ctx.reply(formattedInfoString, { parse_mode: 'HTML' })
 })
 
 bot.telegram.setMyCommands([
