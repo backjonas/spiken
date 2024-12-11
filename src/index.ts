@@ -18,6 +18,7 @@ import {
   formatDateToString,
   formatName,
 } from './utils.js'
+import { formattedAccountString } from './constants.js'
 
 const bot = new Telegraf<ContextWithScenes>(config.botToken)
 
@@ -334,17 +335,19 @@ bot.command('kop_ovrigt', async (ctx) => {
 
 //#region Misc commands
 
+const formattedInfoString = config.infoMessage + '\n' + formattedAccountString
+
 bot.command('saldo', async (ctx) => {
   const balance = await getBalanceForMember(ctx.from.id)
   return ctx.reply(`Ditt saldo är ${balance}€`)
 })
 
 bot.command('info', async (ctx) => {
-  return ctx.reply(config.infoMessage)
+  return ctx.reply(formattedInfoString, { parse_mode: 'HTML' })
 })
 
 bot.command('start', async (ctx) => {
-  return ctx.reply(config.infoMessage)
+  return ctx.reply(formattedInfoString, { parse_mode: 'HTML' })
 })
 
 bot.telegram.setMyCommands([
