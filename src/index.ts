@@ -20,8 +20,6 @@ import {
 } from './utils.js'
 import { formattedAccountString } from './constants.js'
 
-
-
 const bot = new Telegraf<ContextWithScenes>(config.botToken)
 
 bot.use(async (ctx, next) => {
@@ -337,10 +335,7 @@ bot.command('kop_ovrigt', async (ctx) => {
 
 //#region Misc commands
 
-const formattedInfoString = config.infoMessage.replace(
-  '{}',
-  formattedAccountString
-)
+const formattedInfoString = config.infoMessage + '\n' + formattedAccountString
 
 bot.command('saldo', async (ctx) => {
   const balance = await getBalanceForMember(ctx.from.id)
@@ -348,12 +343,8 @@ bot.command('saldo', async (ctx) => {
 })
 
 bot.command('info', async (ctx) => {
-  return ctx.reply(formattedInfoString,
-    { parse_mode: 'HTML' }
-  )
+  return ctx.reply(formattedInfoString, { parse_mode: 'HTML' })
 })
-
-
 
 bot.command('start', async (ctx) => {
   return ctx.reply(formattedInfoString)
