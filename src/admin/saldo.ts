@@ -12,6 +12,9 @@ import { ContextWithScenes } from '../scene.js'
 import { formattedAccountString } from '../constants.js'
 
 //#region Misc
+interface ShameSceneState {
+  saldoCutOff: number
+}
 
 const bot = new Composer<ContextWithScenes>()
 
@@ -213,9 +216,6 @@ saldoUploadScene.command('exit', async (ctx) => {
   return ctx.scene.leave()
 })
 
-const stage = new Scenes.Stage([saldoUploadScene])
-bot.use(stage.middleware())
-
 bot.command('saldo_upload', async (ctx) => {
   await ctx.scene.enter('saldo_upload_scene')
 })
@@ -229,47 +229,92 @@ bot.command('saldo_upload', async (ctx) => {
  * I.e sending `/shame` will send a message to all users with negative score,
  * while ending `shame_20` will send a message to all users with a balance of less than -20.
  */
-bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
-  const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
+const shameScene = new Scenes.WizardScene<ContextWithScenes>(
+  'shame_scene',
+  async (ctx) => {
+    const { saldoCutOff } = ctx.scene.state as ShameSceneState
+    ctx.scene.session.userBalances = (await getAllBalances()).filter(
+      (obj) => obj.balance < -saldoCutOff
+    )
+    const confirmationMessage =
+      'Följande personer kommer pingas med en påminnelse:\n```' +
+      ctx.scene.session.userBalances
+        .map((user) => `${user.userName}, saldo: ${user.balance}`)
+        .join('') +
+      '```'
+    ctx.reply(confirmationMessage, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        Markup.button.callback('Godkänn', 'confirm'),
+        Markup.button.callback('Avbryt', 'abort'),
+      ]),
+    })
+    return ctx.wizard.next()
+  },
+  async (ctx) => {
+    const { saldoCutOff } = ctx.scene.state as ShameSceneState
+    if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+      if (ctx.callbackQuery.data === 'confirm') {
+        const balances = ctx.scene.session.userBalances
+        const problem_cases = []
+        for await (const { userId, balance, userName } of balances) {
+          const message =
+            `Ert saldo är nu <b>${balance.toFixed(
+              2
+            )}€</b>. Det skulle vara att föredra att Ert saldo hålls positivt. ` +
+            `Ni kan betala in på Er spik genom att skicka en summa, dock helst minst ${-balance.toFixed(
+              2
+            )}€, till följande konto: ` +
+            formattedAccountString
+          try {
+            await ctx.telegram.sendMessage(userId, message, {
+              parse_mode: 'HTML',
+            })
+          } catch (error) {
+            console.log(
+              `User "${userName}" has probably not started a chat with the bot`,
+              error
+            )
+            problem_cases.push(userName)
+          }
+        }
 
-  const balances = (await getAllBalances()).filter(
-    (obj) => obj.balance < -saldoCutOff
-  )
-  const problem_cases = []
-  for await (const { userId, balance, userName } of balances) {
-    const message =
-      `Ert saldo är nu <b>${balance.toFixed(
-        2
-      )}€</b>. Det skulle vara att föredra att Ert saldo hålls positivt. ` +
-      `Ni kan betala in på Er spik genom att skicka en summa, dock helst minst ${-balance.toFixed(
-        2
-      )}€, till följande konto: ` +
-      formattedAccountString
-      try {
-        await ctx.telegram.sendMessage(userId, message, {
+        var adminMessage =
+          `Följande användare pingades med en cut-off av -${saldoCutOff}€:<pre>` +
+          balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
+          '</pre>'
+        if (problem_cases.length > 0) {
+          adminMessage +=
+            `\nFöljande användare kunde inte pingas:<pre>` +
+            problem_cases.join('\n') +
+            '</pre>'
+        }
+        ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
           parse_mode: 'HTML',
         })
-      } catch (error) {
-        console.log(`User "${userName}" has probably not started a chat with the bot`, error)
-        problem_cases.push(userName)
+        ctx.scene.leave()
+        return ctx.reply(
+          'Påminnelse skickad. Detaljerad info hittas i admin-chatten.'
+        )
+      } else {
+        ctx.scene.leave()
+        return ctx.reply('Kommandot avbröts')
       }
-
+    }
   }
+)
 
-  if (balances.length > 0) {
-    var adminMessage =
-      `Följande användare pingades med en cut-off av -${saldoCutOff}€:<pre>` +
-      balances.map((b) => `${b.userName}: ${b.balance}`).join('\n') +
-      '</pre>'
-      if (problem_cases.length > 0){
-        adminMessage += `\nFöljande användare kunde inte pingas:<pre>` +
-        problem_cases.join('\n') +
-      '</pre>'
-      }
-    ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
-      parse_mode: 'HTML',
-    })
-  }
+shameScene.command('exit', async (ctx) => {
+  ctx.reply('Kommandot avbröts.')
+  return ctx.scene.leave()
+})
+
+const stage = new Scenes.Stage([saldoUploadScene, shameScene])
+bot.use(stage.middleware())
+
+bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
+  const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
+  return await ctx.scene.enter('shame_scene', { saldoCutOff })
 })
 
 //endregion
