@@ -200,7 +200,26 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
         for await (const t of transactions) {
           await purchaseItemForMember(t)
         }
+
         ctx.scene.leave()
+
+        const adminMessage =
+          `Användaren ${ctx.from?.username} laddade upp följande transaktioner:` +
+          '\n```' +
+          transactions
+            .map((t) =>
+              formatTransaction(
+                t.userName,
+                t.description,
+                Number(t.amountCents)
+              )
+            )
+            .join('') +
+          '```'
+        ctx.telegram.sendMessage(config.adminChatId, adminMessage, {
+          parse_mode: 'Markdown',
+        })
+
         return ctx.reply(`Saldoladdningen lyckades med en insättning av ${transactions.length} nya transaktioner.
 Använd /historia_all eller /exportera för att inspektera de nya transaktionerna.`)
       } else {
@@ -214,10 +233,6 @@ Använd /historia_all eller /exportera för att inspektera de nya transaktionern
 saldoUploadScene.command('exit', async (ctx) => {
   ctx.reply('Saldouppladningen avbröts')
   return ctx.scene.leave()
-})
-
-bot.command('saldo_upload', async (ctx) => {
-  await ctx.scene.enter('saldo_upload_scene')
 })
 
 //endregion
@@ -311,6 +326,10 @@ shameScene.command('exit', async (ctx) => {
 
 const stage = new Scenes.Stage([saldoUploadScene, shameScene])
 bot.use(stage.middleware())
+
+bot.command('saldo_upload', async (ctx) => {
+  await ctx.scene.enter('saldo_upload_scene')
+})
 
 bot.hears(/^\/shame(?:_(\d+))?$/, async (ctx) => {
   const saldoCutOff = ctx.match[1] ? Number(ctx.match[1]) : 0
