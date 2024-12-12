@@ -13,6 +13,11 @@ interface MyWizardSession extends Scenes.WizardSessionData {
     priceCents: string
   }
   from: User
+  userBalances: {
+    userId: string
+    userName: string
+    balance: number
+  }[]
 }
 
 export type ContextWithScenes = Scenes.WizardContext<MyWizardSession>
