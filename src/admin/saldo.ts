@@ -176,7 +176,7 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
       )
 
       const confirmationMessage =
-        'Följande transaktioner kommer läggas till:\n```' +
+        'Följande transaktioner kommer läggas till:\n```\n' +
         transactions
           .map((t) =>
             formatTransaction(t.userName, t.description, Number(t.amountCents))
@@ -205,7 +205,7 @@ User ID:n fungerar som primary key, kom alltså ihåg att ändra den om du manue
 
         const adminMessage =
           `Användaren ${ctx.from?.username} laddade upp följande transaktioner:` +
-          '\n```' +
+          '\n```\n' +
           transactions
             .map((t) =>
               formatTransaction(
@@ -252,10 +252,10 @@ const shameScene = new Scenes.WizardScene<ContextWithScenes>(
       (obj) => obj.balance < -saldoCutOff
     )
     const confirmationMessage =
-      'Följande personer kommer pingas med en påminnelse:\n```' +
+      'Följande personer kommer pingas med en påminnelse:\n```\n' +
       ctx.scene.session.userBalances
         .map((user) => `${user.userName}, saldo: ${user.balance}`)
-        .join('') +
+        .join('\n') +
       '```'
     ctx.reply(confirmationMessage, {
       parse_mode: 'Markdown',
