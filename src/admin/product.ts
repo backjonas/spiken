@@ -63,10 +63,10 @@ const deleteCommandFollowUp = bot.action(
     const productId = Number(ctx.match[1])
     const productDescription = ctx.match[2]
     try {
-      const deletedRowsCount = (await deleteProduct(productId))['rowCount']
-      if (deletedRowsCount > 1) {
+      const deletedRowsCount = (await deleteProduct(productId))['rowCount'] ?? 0
+      if (deletedRowsCount !== 1) {
         console.log(
-          `${deletedRowsCount} rows were deleted, only 1 should have been.`
+          `${deletedRowsCount} rows were deleted when exactly 1 row should have been deleted.`
         )
       }
       console.log(
@@ -156,20 +156,20 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
           await addProduct(product)
           console.log(
             'The following product has been added:\n' +
-              `name:"${ctx.scene.session.newProduct.name}"\n` +
-              `description:"${ctx.scene.session.newProduct.description}"\n` +
-              `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`
+            `name:"${ctx.scene.session.newProduct.name}"\n` +
+            `description:"${ctx.scene.session.newProduct.description}"\n` +
+            `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`
           )
           ctx.reply(
             'Produkten har lagts till!\n' +
-              'För att den nya produkten ska synas i menyn måste botten startas om.'
+            'För att den nya produkten ska synas i menyn måste botten startas om.'
           )
         } catch (e) {
           console.log(
             'The following product could not be added:\n' +
-              `name:"${ctx.scene.session.newProduct.name}"\n` +
-              `description:"${ctx.scene.session.newProduct.description}"\n` +
-              `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`,
+            `name:"${ctx.scene.session.newProduct.name}"\n` +
+            `description:"${ctx.scene.session.newProduct.description}"\n` +
+            `priceCents:"${ctx.scene.session.newProduct.priceCents}"\n`,
             e
           )
         }
@@ -187,9 +187,9 @@ const addProductScene = new Scenes.WizardScene<ContextWithScenes>(
 function confirmOrAbortReplyForAdd(ctx: ContextWithScenes, product: ProductIn) {
   ctx.reply(
     `Följande product kommer att läggas till:\n` +
-      `\t${product.name}\n` +
-      `\t${product.description}\n` +
-      `\t${-product.priceCents}\n`,
+    `\t${product.name}\n` +
+    `\t${product.description}\n` +
+    `\t${-product.priceCents}\n`,
     {
       ...confirmOrAbortButton,
     }
@@ -349,9 +349,9 @@ async function confirmOrAbortButtonForEdit(
   const originalProduct = (await getProductById(product.id)).rows[0]
   ctx.reply(
     `Följande product kommer att uppdateras:\n` +
-      `\t\t\tKommando: ${originalProduct.name} --> ${product.name}\n` +
-      `\t\t\tFörklaring: ${originalProduct.description} --> ${product.description}\n` +
-      `\t\t\tPris: ${-originalProduct.price_cents} --> ${-product.price_cents}\n`,
+    `\t\t\tKommando: ${originalProduct.name} --> ${product.name}\n` +
+    `\t\t\tFörklaring: ${originalProduct.description} --> ${product.description}\n` +
+    `\t\t\tPris: ${-originalProduct.price_cents} --> ${-product.price_cents}\n`,
     {
       ...confirmOrAbortButton,
     }
